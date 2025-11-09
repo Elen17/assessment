@@ -1,0 +1,269 @@
+2025-11-08 18:52:08.247 [main] INFO  c.e.CustomDeserializationExamples - Configuring ObjectMapper with custom deserializers
+2025-11-08 18:52:08.439 [main] INFO  c.e.CustomDeserializationExamples - === Deserializing Order from file ===
+2025-11-08 18:52:08.499 [main] INFO  c.e.CustomDeserializationExamples - Successfully deserialized Order:
+ {
+  "orderId" : "ORD-12345",
+  "customer" : {
+    "id" : "CUST-1001",
+    "name" : "John Doe",
+    "email" : "john.doe@example.com",
+    "shippingAddress" : {
+      "street" : "123 Main St",
+      "city" : "New York",
+      "zipCode" : "10001",
+      "country" : "USA"
+    }
+  },
+  "items" : [ {
+    "productId" : "PROD-001",
+    "productName" : "Wireless Mouse",
+    "quantity" : 2,
+    "unitPrice" : 49.99
+  }, {
+    "productId" : "PROD-002",
+    "productName" : "Keyboard",
+    "quantity" : 1,
+    "unitPrice" : 99.99
+  } ],
+  "totalAmount" : 299.98
+}
+2025-11-10 00:56:49.684 [main] INFO  com.example.CustomSerializerExample - Order: [FAILED toString()]
+2025-11-10 01:05:33.593 [main] INFO  com.example.CustomSerializerExample - Order: {
+  "orderId" : "ORD-12345",
+  "customer" : {
+    "id" : "CUST-1001",
+    "firstName" : "John",
+    "lastName" : "Doe",
+    "email" : "john.doe@example.com",
+    "shippingAddress" : {
+      "street" : "123 Main St",
+      "city" : "New York",
+      "zipCode" : "10001",
+      "country" : "USA"
+    }
+  },
+  "items" : [ {
+    "productId" : "PROD-001",
+    "productName" : "Wireless Mouse",
+    "quantity" : 2,
+    "unitPrice" : 49.99
+  }, {
+    "productId" : "PROD-002",
+    "productName" : "Keyboard",
+    "quantity" : 1,
+    "unitPrice" : 99.99
+  } ],
+  "totalAmount" : 299.98,
+  "orderDate" : 1694721600000
+}
+2025-11-10 01:08:20.631 [main] INFO  com.example.CustomSerializerExample - Order: {
+  "orderId" : "ORD-12345",
+  "customer" : {
+    "id" : "CUST-1001",
+    "firstName" : "John",
+    "lastName" : "Doe",
+    "email" : "john.doe@example.com",
+    "shippingAddress" : {
+      "street" : "123 Main St",
+      "city" : "New York",
+      "zipCode" : "10001",
+      "country" : "USA"
+    }
+  },
+  "items" : [ {
+    "productId" : "PROD-001",
+    "productName" : "Wireless Mouse",
+    "quantity" : 2,
+    "unitPrice" : 49.99
+  }, {
+    "productId" : "PROD-002",
+    "productName" : "Keyboard",
+    "quantity" : 1,
+    "unitPrice" : 99.99
+  } ],
+  "totalAmount" : 299.98,
+  "orderDate" : 1694721600000
+}
+2025-11-10 01:09:39.323 [main] INFO  c.e.CustomDeserializationExample - Configuring ObjectMapper with custom deserializers
+2025-11-10 01:09:39.500 [main] INFO  c.e.CustomDeserializationExample - === Deserializing Order from file ===
+2025-11-10 01:09:39.544 [main] INFO  c.e.CustomDeserializationExample - Successfully deserialized Order:
+ {
+  "orderId" : "ORD-12345",
+  "customer" : {
+    "id" : "CUST-1001",
+    "firstName" : "John",
+    "lastName" : "Doe",
+    "email" : "john.doe@example.com",
+    "shippingAddress" : {
+      "street" : "123 Main St",
+      "city" : "New York",
+      "zipCode" : "10001",
+      "country" : "USA"
+    }
+  },
+  "items" : [ {
+    "productId" : "PROD-001",
+    "productName" : "Wireless Mouse",
+    "quantity" : 2,
+    "unitPrice" : 49.99
+  }, {
+    "productId" : "PROD-002",
+    "productName" : "Keyboard",
+    "quantity" : 1,
+    "unitPrice" : 99.99
+  } ],
+  "totalAmount" : 299.98,
+  "orderDate" : 1694721600000
+}
+2025-11-10 01:12:15.622 [main] INFO  c.e.SimpleDeserializationExamples - === Deserializing from file: name.json ===
+
+2025-11-10 01:12:15.696 [main] INFO  c.e.SimpleDeserializationExamples - Name: {firstName='John', lastName='Doe'}
+2025-11-10 01:12:15.696 [main] INFO  c.e.SimpleDeserializationExamples - === Deserializing from string ===
+
+2025-11-10 01:12:15.712 [main] INFO  c.e.SimpleDeserializationExamples - First name: Jane, Last name: Doe
+
+2025-11-10 01:12:15.712 [main] INFO  c.e.SimpleDeserializationExamples - === Deserializing person string ===
+2025-11-10 01:12:15.720 [main] INFO  c.e.SimpleDeserializationExamples - Person: {
+  "name" : "John Doe",
+  "email" : "john.doe@example.com",
+  "birthDate" : 631152000000
+}
+2025-11-10 01:12:15.759 [main] INFO  c.e.SimpleDeserializationExamples - === Deserializing JSON array ===
+
+2025-11-10 01:12:15.763 [main] INFO  c.e.SimpleDeserializationExamples - {firstName='Nike', lastName='Clinton'}
+2025-11-10 01:12:15.763 [main] INFO  c.e.SimpleDeserializationExamples - {firstName='Ben', lastName='Kingsley'}
+2025-11-10 01:12:15.763 [main] INFO  c.e.SimpleDeserializationExamples - === Deserializing using Reader ===
+
+2025-11-10 01:12:15.763 [main] INFO  c.e.SimpleDeserializationExamples - Name: {firstName='Jane', lastName='Doe'}
+2025-11-10 01:12:15.764 [main] INFO  c.e.SimpleDeserializationExamples - === Deserializing to generic List ===
+
+2025-11-10 01:12:15.765 [main] INFO  c.e.SimpleDeserializationExamples - Name: {firstName='James', lastName='Mayer'}
+2025-11-10 01:12:15.765 [main] INFO  c.e.SimpleDeserializationExamples - Name: {firstName='Audrey', lastName='Bolton'}
+2025-11-10 01:12:15.765 [main] INFO  c.e.SimpleDeserializationExamples - === Demonstrating error handling ===
+
+2025-11-10 01:12:15.769 [main] WARN  c.e.SimpleDeserializationExamples - Expected error while deserializing: Unrecognized field "age" (class com.example.model.Name), not marked as ignorable (2 known properties: "lastName", "firstName"])
+ at [Source: (FileReader); line: 4, column: 12] (through reference chain: com.example.model.Name["age"])
+2025-11-10 01:12:15.769 [main] INFO  c.e.SimpleDeserializationExamples - === Demonstrating ignore unknown properties ===
+
+2025-11-10 01:12:15.771 [main] INFO  c.e.SimpleDeserializationExamples - Successfully deserialized with unknown properties ignored:
+2025-11-10 01:12:15.771 [main] INFO  c.e.SimpleDeserializationExamples - Name: {firstName='John', lastName='Doe'}
+2025-11-10 01:12:15.773 [main] ERROR c.e.SimpleDeserializationExamples - Expected error while deserializing invalid JSON: Unrecognized field "age" (class com.example.model.Name), not marked as ignorable (2 known properties: "lastName", "firstName"])
+ at [Source: (FileReader); line: 4, column: 12] (through reference chain: com.example.model.Name["age"])
+2025-11-10 01:49:31.251 [main] INFO  com.example.AnnotationExample - 
+=== Example 1: Basic Deserialization ===
+2025-11-10 01:49:31.447 [main] INFO  com.example.AnnotationExample - Deserialized Person: "{\"id\":123,\"name\":\"John Doe\"}"
+2025-11-10 01:49:31.464 [main] INFO  com.example.AnnotationExample - 
+=== Example 2: Deserialize with @JsonCreator ===
+2025-11-10 01:49:31.464 [main] INFO  com.example.AnnotationExample - Minimal Person (using @JsonCreator): "{\"id\":456,\"name\":\"Jane Smith\"}"
+2025-11-10 01:49:31.465 [main] INFO  com.example.AnnotationExample - 
+=== Example 3: Serialize with all fields ===
+2025-11-10 01:49:31.466 [main] INFO  com.example.AnnotationExample - Serialized Person:
+"{\"id\":789,\"name\":\"Alice Johnson\"}"
+2025-11-10 01:49:31.467 [main] INFO  com.example.AnnotationExample - 
+=== Example 4: Handle unknown properties ===
+2025-11-10 01:49:31.467 [main] INFO  com.example.AnnotationExample - Person with unknown fields deserialized: "{\"id\":999,\"name\":\"Bob Brown\"}"
+2025-11-10 01:49:31.467 [main] INFO  com.example.AnnotationExample - Unknown fields stored in metadata: {unknownField1=value1, unknownField2=12345}
+2025-11-10 01:54:22.252 [main] INFO  com.example.AnnotationExample - 
+=== Example 1: Basic Deserialization ===
+2025-11-10 01:54:22.490 [main] INFO  com.example.AnnotationExample - Deserialized Person: "{\"id\":123,\"name\":\"John Doe\"}"
+2025-11-10 01:54:22.493 [main] INFO  com.example.AnnotationExample - 
+=== Example 2: Deserialize with @JsonCreator ===
+2025-11-10 01:54:22.493 [main] INFO  com.example.AnnotationExample - Minimal Person (using @JsonCreator): "{\"id\":456,\"name\":\"Jane Smith\"}"
+2025-11-10 01:54:22.494 [main] INFO  com.example.AnnotationExample - 
+=== Example 3: Serialize with all fields ===
+2025-11-10 01:54:22.499 [main] INFO  com.example.AnnotationExample - Serialized Person:
+"{\"id\":789,\"name\":\"Alice Johnson\"}"
+2025-11-10 01:54:22.500 [main] INFO  com.example.AnnotationExample - 
+=== Example 4: Handle unknown properties ===
+2025-11-10 01:54:22.500 [main] INFO  com.example.AnnotationExample - Person with unknown fields deserialized: "{\"id\":999,\"name\":\"Bob Brown\"}"
+2025-11-10 01:54:22.500 [main] INFO  com.example.AnnotationExample - Unknown fields stored in metadata: {unknownField1=value1, unknownField2=12345}
+2025-11-10 01:54:47.557 [main] INFO  com.example.AnnotationExample - 
+=== Example 1: Basic Deserialization ===
+2025-11-10 01:56:16.737 [main] INFO  com.example.AnnotationExample - Deserialized Person: "{\"id\":123,\"name\":\"John Doe\"}"
+2025-11-10 01:56:16.744 [main] INFO  com.example.AnnotationExample - 
+=== Example 2: Deserialize with @JsonCreator ===
+2025-11-10 01:56:16.746 [main] INFO  com.example.AnnotationExample - Minimal Person (using @JsonCreator): "{\"id\":456,\"name\":\"Jane Smith\"}"
+2025-11-10 01:56:16.746 [main] INFO  com.example.AnnotationExample - 
+=== Example 3: Serialize with all fields ===
+2025-11-10 01:56:16.750 [main] INFO  com.example.AnnotationExample - Serialized Person:
+"{\"id\":789,\"name\":\"Alice Johnson\"}"
+2025-11-10 01:56:16.750 [main] INFO  com.example.AnnotationExample - 
+=== Example 4: Handle unknown properties ===
+2025-11-10 01:56:16.753 [main] INFO  com.example.AnnotationExample - Person with unknown fields deserialized: "{\"id\":999,\"name\":\"Bob Brown\"}"
+2025-11-10 01:56:16.754 [main] INFO  com.example.AnnotationExample - Unknown fields stored in metadata: {unknownField1=value1, unknownField2=12345}
+2025-11-10 01:56:23.940 [main] INFO  com.example.AnnotationExample - 
+=== Example 1: Basic Deserialization ===
+2025-11-10 01:56:24.310 [main] ERROR com.example.AnnotationExample - An error occurred: Java 8 date/time type `java.time.LocalDate` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling (or disable `MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES`) (through reference chain: com.example.model.PersonExtended["dateOfBirth"])
+com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Java 8 date/time type `java.time.LocalDate` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling (or disable `MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES`) (through reference chain: com.example.model.PersonExtended["dateOfBirth"])
+	at com.fasterxml.jackson.databind.exc.InvalidDefinitionException.from(InvalidDefinitionException.java:77)
+	at com.fasterxml.jackson.databind.SerializerProvider.reportBadDefinition(SerializerProvider.java:1359)
+	at com.fasterxml.jackson.databind.ser.impl.UnsupportedTypeSerializer.serialize(UnsupportedTypeSerializer.java:34)
+	at com.fasterxml.jackson.databind.ser.BeanPropertyWriter.serializeAsField(BeanPropertyWriter.java:732)
+	at com.fasterxml.jackson.databind.ser.std.BeanSerializerBase.serializeFields(BeanSerializerBase.java:760)
+	at com.fasterxml.jackson.databind.ser.BeanSerializer.serialize(BeanSerializer.java:183)
+	at com.fasterxml.jackson.databind.ser.DefaultSerializerProvider._serialize(DefaultSerializerProvider.java:503)
+	at com.fasterxml.jackson.databind.ser.DefaultSerializerProvider.serializeValue(DefaultSerializerProvider.java:342)
+	at com.fasterxml.jackson.databind.ObjectMapper._writeValueAndClose(ObjectMapper.java:4926)
+	at com.fasterxml.jackson.databind.ObjectMapper.writeValueAsString(ObjectMapper.java:4146)
+	at com.example.helper.PrettyStringHelper.toPrettyString(PrettyStringHelper.java:19)
+	at com.example.model.PersonExtended.toString(PersonExtended.java:73)
+	at com.example.AnnotationExample.deserializeBasicPerson(AnnotationExample.java:53)
+	at com.example.AnnotationExample.main(AnnotationExample.java:24)
+2025-11-10 01:56:58.666 [main] INFO  com.example.AnnotationExample - 
+=== Example 1: Basic Deserialization ===
+2025-11-10 01:56:58.868 [main] ERROR com.example.AnnotationExample - An error occurred: Java 8 date/time type `java.time.LocalDate` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling (or disable `MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES`) (through reference chain: com.example.model.PersonExtended["dateOfBirth"])
+com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Java 8 date/time type `java.time.LocalDate` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling (or disable `MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES`) (through reference chain: com.example.model.PersonExtended["dateOfBirth"])
+	at com.fasterxml.jackson.databind.exc.InvalidDefinitionException.from(InvalidDefinitionException.java:77)
+	at com.fasterxml.jackson.databind.SerializerProvider.reportBadDefinition(SerializerProvider.java:1359)
+	at com.fasterxml.jackson.databind.ser.impl.UnsupportedTypeSerializer.serialize(UnsupportedTypeSerializer.java:34)
+	at com.fasterxml.jackson.databind.ser.BeanPropertyWriter.serializeAsField(BeanPropertyWriter.java:732)
+	at com.fasterxml.jackson.databind.ser.std.BeanSerializerBase.serializeFields(BeanSerializerBase.java:760)
+	at com.fasterxml.jackson.databind.ser.BeanSerializer.serialize(BeanSerializer.java:183)
+	at com.fasterxml.jackson.databind.ser.DefaultSerializerProvider._serialize(DefaultSerializerProvider.java:503)
+	at com.fasterxml.jackson.databind.ser.DefaultSerializerProvider.serializeValue(DefaultSerializerProvider.java:342)
+	at com.fasterxml.jackson.databind.ObjectMapper._writeValueAndClose(ObjectMapper.java:4926)
+	at com.fasterxml.jackson.databind.ObjectMapper.writeValueAsString(ObjectMapper.java:4146)
+	at com.example.helper.PrettyStringHelper.toPrettyString(PrettyStringHelper.java:19)
+	at com.example.model.PersonExtended.toString(PersonExtended.java:75)
+	at com.example.AnnotationExample.deserializeBasicPerson(AnnotationExample.java:53)
+	at com.example.AnnotationExample.main(AnnotationExample.java:24)
+2025-11-10 01:57:49.004 [main] INFO  com.example.AnnotationExample - 
+=== Example 1: Basic Deserialization ===
+2025-11-10 01:57:49.241 [main] INFO  com.example.AnnotationExample - Deserialized Person: {
+  "id" : 123,
+  "fullName" : "John Doe",
+  "email" : "john.doe@example.com",
+  "dateOfBirth" : "1990-01-15",
+  "enabled" : true,
+  "password" : "secret",
+  "extraField" : "This will be ignored"
+}
+2025-11-10 01:57:49.243 [main] INFO  com.example.AnnotationExample - 
+=== Example 2: Deserialize with @JsonCreator ===
+2025-11-10 01:57:49.243 [main] INFO  com.example.AnnotationExample - Minimal Person (using @JsonCreator): {
+  "id" : 456,
+  "fullName" : "Jane Smith",
+  "enabled" : false
+}
+2025-11-10 01:57:49.244 [main] INFO  com.example.AnnotationExample - 
+=== Example 3: Serialize with all fields ===
+2025-11-10 01:57:49.248 [main] INFO  com.example.AnnotationExample - Serialized Person:
+{
+  "id" : 789,
+  "fullName" : "Alice Johnson",
+  "email" : "alice.johnson@example.com",
+  "dateOfBirth" : "1985-05-20",
+  "enabled" : true,
+  "role" : "Developer",
+  "department" : "Engineering"
+}
+2025-11-10 01:57:49.249 [main] INFO  com.example.AnnotationExample - 
+=== Example 4: Handle unknown properties ===
+2025-11-10 01:57:49.250 [main] INFO  com.example.AnnotationExample - Person with unknown fields deserialized: {
+  "id" : 999,
+  "fullName" : "Bob Brown",
+  "enabled" : true,
+  "unknownField1" : "value1",
+  "unknownField2" : 12345
+}
+2025-11-10 01:57:49.252 [main] INFO  com.example.AnnotationExample - Unknown fields stored in metadata: {unknownField1=value1, unknownField2=12345}
