@@ -6,7 +6,7 @@ import org.example.gson.model.Person;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
 
-public class PersonCreator implements InstanceCreator<Person> {
+public class PersonCreatorWithDefaultDate implements InstanceCreator<Person> {
 
     @Override
     public Person createInstance(Type type) {

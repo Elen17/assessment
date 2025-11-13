@@ -3,7 +3,9 @@ package com.example.helper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class PrettyStringHelper {
 
     private static final ObjectMapper mapper = new ObjectMapper()

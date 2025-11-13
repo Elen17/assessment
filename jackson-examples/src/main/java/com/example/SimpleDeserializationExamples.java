@@ -55,7 +55,6 @@ public class SimpleDeserializationExamples {
     private static final String NAME_LIST_FILE = "nameList.json";
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     public static void main(String[] args) {
 

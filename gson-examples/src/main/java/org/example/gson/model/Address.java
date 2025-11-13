@@ -1,23 +1,17 @@
 package org.example.gson.model;
 
+import lombok.Getter;
+import lombok.Setter;
+import static org.example.gson.util.JsonUtils.objectToPrettyJson;
+
+@Setter
+@Getter
 public class Address {
     private String street;
     private String city;
 
-    public String getStreet() {
-        return street;
+    @Override
+    public String toString() {
+        return objectToPrettyJson(this);
     }
-
-    public void setStreet(String street) {
-        this.street = street;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
 }

@@ -3,80 +3,86 @@ package org.example.gson;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import lombok.extern.slf4j.Slf4j;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 
-/**
- * | Step                 | Component                                                                     | Description |
- * | -------------------- | ----------------------------------------------------------------------------- | ----------- |
- * | **1️⃣ `JsonReader`** | Reads each JSON object lazily from a stream (efficient for large arrays).     |             |
- * | **2️⃣ `JsonParser`** | Parses that single object into a `JsonObject` (so we can inspect and modify). |             |
- * | **3️⃣ Filter**       | `if (!"ERROR".equalsIgnoreCase(...)) continue;` skips unnecessary objects.    |             |
- * | **4️⃣ Modify**       | Adds `timestamp` and `severity`, uppercases message.                          |             |
- * | **5️⃣ `JsonWriter`** | Writes the filtered objects directly into the new JSON array.                 |             |
- */
-
+@Slf4j
 public class JsonFilterPipelineExample {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final String LOG_TYPE_FIELD = "type";
+    private static final String TIMESTAMP_FIELD = "timestamp";
+    private static final String MESSAGE_FIELD = "message";
+
+    private static final String INPUT_JSON = """
+            [
+                {"type": "INFO", "message": "Application started", "timestamp": 1636739200000},
+                {"type": "ERROR", "message": "Failed to connect to database", "timestamp": 1636739201000},
+                {"type": "WARN", "message": "High memory usage", "timestamp": 1636739202000},
+                {"type": "ERROR", "message": "Invalid user input", "timestamp": 1636739203000}
+            ]""".stripIndent();
 
     public static void main(String[] args) {
-        String inputJson = """
-        [
-          {"id": 1, "type": "INFO", "message": "Server started"},
-          {"id": 2, "type": "ERROR", "message": "Connection failed"},
-          {"id": 3, "type": "INFO", "message": "User logged in"},
-          {"id": 4, "type": "ERROR", "message": "Disk full"}
-        ]
-        """;
+        processJson(INPUT_JSON);
+    }
 
-        try (
-                JsonReader reader = new JsonReader(new StringReader(inputJson));
-                StringWriter stringWriter = new StringWriter();
-                JsonWriter writer = new JsonWriter(stringWriter)
-        ) {
-            JsonParser jsonParser = new JsonParser();
-            reader.beginArray();
-            writer.beginArray();
+    public static void processJson(String inputJson) {
+        try (StringReader stringReader = new StringReader(inputJson);
+             JsonReader reader = new JsonReader(stringReader);
+             StringWriter stringWriter = new StringWriter();
+             JsonWriter writer = new JsonWriter(stringWriter)) {
 
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-            while (reader.hasNext()) {
-                // Parse next element as JsonObject
-                JsonElement element = jsonParser.parse(reader);
-                JsonObject obj = element.getAsJsonObject();
-
-                // Filter: keep only ERROR logs
-                if (!"ERROR".equalsIgnoreCase(obj.get("type").getAsString())) {
-                    continue; // skip non-ERROR entries
-                }
-
-                // Modify the JSON object
-                modifyLogEntry(obj);
-
-                // Write filtered + modified entry
-                gson.toJson(obj, writer);
-            }
-
-            reader.endArray();
-            writer.endArray();
-            writer.close();
-
-            // Output filtered and modified JSON
-            System.out.println("✅ Filtered + Modified JSON output:");
-            System.out.println(stringWriter);
+            processJsonStream(reader, writer);
+            log.info("Filtered + Modified JSON output:\n{}", stringWriter);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Error processing JSON: {}", e.getMessage(), e);
         }
     }
 
-    private static void modifyLogEntry(JsonObject obj) {
-        // Add new fields
-        obj.addProperty("timestamp", System.currentTimeMillis());
-        obj.addProperty("severity", "HIGH");
+    private static void processJsonStream(JsonReader reader, JsonWriter writer) throws IOException {
+        JsonParser jsonParser = new JsonParser();
+        reader.beginArray();
+        writer.beginArray();
 
-        // Transform message
-        String message = obj.get("message").getAsString();
-        obj.addProperty("message", message.toUpperCase());
+        while (reader.hasNext()) {
+            processJsonElement(jsonParser, reader, writer);
+        }
+
+        reader.endArray();
+        writer.endArray();
+    }
+
+    private static void processJsonElement(JsonParser parser, JsonReader reader, JsonWriter writer) {
+        try {
+            JsonElement element = parser.parse(reader);
+            JsonObject obj = element.getAsJsonObject();
+
+            if (isErrorLogEntry(obj)) {
+                JsonObject modifiedObj = modifyLogEntry(obj);
+                GSON.toJson(modifiedObj, writer);
+            }
+        } catch (JsonParseException e) {
+            log.warn("Skipping malformed JSON element: {}", e.getMessage());
+        }
+    }
+
+    private static boolean isErrorLogEntry(JsonObject logEntry) {
+        return logEntry.has(LOG_TYPE_FIELD) &&
+               "ERROR".equalsIgnoreCase(logEntry.get(LOG_TYPE_FIELD).getAsString());
+    }
+
+    private static JsonObject modifyLogEntry(JsonObject logEntry) {
+        JsonObject modified = logEntry.getAsJsonObject();
+        modified.addProperty(TIMESTAMP_FIELD, System.currentTimeMillis());
+
+        if (modified.has(MESSAGE_FIELD)) {
+            String message = modified.get(MESSAGE_FIELD).getAsString();
+            modified.addProperty(MESSAGE_FIELD, "[MODIFIED] " + message);
+        }
+
+        return modified;
     }
 }
-
