@@ -9,6 +9,7 @@
     <modules>
         <module>jackson-examples</module>
         <module>gson-examples</module>
+        <module>guava-examples</module>
     </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

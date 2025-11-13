@@ -1,4 +1,3 @@
-// JsonUtils.java
 package org.example.gson.util;
 
 import com.google.gson.*;
@@ -18,7 +17,7 @@ public class JsonUtils {
 
 
     public static String toPrettyJson(String json) {
-        JsonElement jsonElement = new JsonParser().parse(json);
+        JsonElement jsonElement = JsonParser.parseString(json);
         return GSON.toJson(jsonElement);
     }
 

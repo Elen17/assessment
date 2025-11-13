@@ -1,0 +1,22 @@
+[
+  {
+    "type": "INFO",
+    "message": "Application started",
+    "timestamp": 1636739200000
+  },
+  {
+    "type": "ERROR",
+    "message": "Failed to connect to database",
+    "timestamp": 1636739201000
+  },
+  {
+    "type": "WARN",
+    "message": "High memory usage",
+    "timestamp": 1636739202000
+  },
+  {
+    "type": "ERROR",
+    "message": "Invalid user input",
+    "timestamp": 1636739203000
+  }
+]

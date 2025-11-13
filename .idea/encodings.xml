@@ -3,6 +3,8 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/gson-examples/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/gson-examples/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/guava-examples/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/guava-examples/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/jackson-examples/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/jackson-examples/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />

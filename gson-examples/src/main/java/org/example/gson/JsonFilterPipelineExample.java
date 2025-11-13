@@ -5,9 +5,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.*;
 
 @Slf4j
 public class JsonFilterPipelineExample {
@@ -15,22 +13,18 @@ public class JsonFilterPipelineExample {
     private static final String LOG_TYPE_FIELD = "type";
     private static final String TIMESTAMP_FIELD = "timestamp";
     private static final String MESSAGE_FIELD = "message";
-
-    private static final String INPUT_JSON = """
-            [
-                {"type": "INFO", "message": "Application started", "timestamp": 1636739200000},
-                {"type": "ERROR", "message": "Failed to connect to database", "timestamp": 1636739201000},
-                {"type": "WARN", "message": "High memory usage", "timestamp": 1636739202000},
-                {"type": "ERROR", "message": "Invalid user input", "timestamp": 1636739203000}
-            ]""".stripIndent();
+    private static final String FILE_NAME = "logs.json";
 
     public static void main(String[] args) {
-        processJson(INPUT_JSON);
+        try {
+            processJson(new FileReader(ClassLoader.getSystemResource(FILE_NAME).getFile()));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static void processJson(String inputJson) {
-        try (StringReader stringReader = new StringReader(inputJson);
-             JsonReader reader = new JsonReader(stringReader);
+    public static void processJson(FileReader file) {
+        try (JsonReader reader = new JsonReader(file);
              StringWriter stringWriter = new StringWriter();
              JsonWriter writer = new JsonWriter(stringWriter)) {
 

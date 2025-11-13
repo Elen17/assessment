@@ -6,12 +6,7 @@ import org.example.gson.model.Person;
 import org.example.gson.model.Address;
 
 @Slf4j
-public class PersonService {
-    private final Gson gson;
-
-    public PersonService(Gson gson) {
-        this.gson = gson;
-    }
+public record PersonService(Gson gson) {
 
     public String serializePerson(Person person) {
         log.debug("Serializing person: {}", person);
