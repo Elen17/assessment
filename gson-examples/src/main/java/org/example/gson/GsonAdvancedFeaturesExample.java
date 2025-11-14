@@ -47,9 +47,7 @@ public class GsonAdvancedFeaturesExample {
         }
     }
 
-    /**
-     * Example 1: Demonstrates complex map key serialization
-     */
+
     private static void demoComplexMapKeys() {
         log.info("=== Example 1: Complex Map Keys ===");
 
@@ -67,9 +65,6 @@ public class GsonAdvancedFeaturesExample {
         log.info("Deserialized map: {}", deserializedMap);
     }
 
-    /**
-     * Example 2: Demonstrates annotations and custom serialization
-     */
     private static void demoAnnotationsAndCustomSerialization() {
         log.info("\n=== Example 2: Annotations and Custom Serialization ===");
 
@@ -85,9 +80,6 @@ public class GsonAdvancedFeaturesExample {
         log.info("Deserialized drawing: {}", deserializedDrawing);
     }
 
-    /**
-     * Example 3: Demonstrates enums with custom names
-     */
     private static void demoEnumWithCustomNames() {
         log.info("\n=== Example 3: Enums with Custom Names ===");
 
@@ -103,9 +95,6 @@ public class GsonAdvancedFeaturesExample {
         log.info("Deserialized 'medium' to: {}", medium);
     }
 
-    /**
-     * Example 4: Demonstrates RuntimeTypeAdapterFactory for polymorphic types
-     */
     private static void demoRuntimeTypeAdapter() {
         log.info("\n=== Example 4: RuntimeTypeAdapterFactory ===");
 
