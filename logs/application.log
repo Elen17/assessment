@@ -267,3 +267,43 @@ com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Java 8 date/time 
   "unknownField2" : 12345
 }
 2025-11-10 01:57:49.252 [main] INFO  com.example.AnnotationExample - Unknown fields stored in metadata: {unknownField1=value1, unknownField2=12345}
+2025-11-13 10:20:35.377 [main] INFO  com.example.AnnotationExample - 
+=== Example 1: Basic Deserialization ===
+2025-11-13 10:20:35.620 [main] INFO  com.example.AnnotationExample - Deserialized Person: {
+  "id" : 123,
+  "fullName" : "John Doe",
+  "email" : "john.doe@example.com",
+  "dateOfBirth" : "1990-01-15",
+  "enabled" : true,
+  "password" : "secret",
+  "extraField" : "This will be ignored"
+}
+2025-11-13 10:20:35.621 [main] INFO  com.example.AnnotationExample - 
+=== Example 2: Deserialize with @JsonCreator ===
+2025-11-13 10:20:35.621 [main] INFO  com.example.AnnotationExample - Minimal Person (using @JsonCreator): {
+  "id" : 456,
+  "fullName" : "Jane Smith",
+  "enabled" : false
+}
+2025-11-13 10:20:35.622 [main] INFO  com.example.AnnotationExample - 
+=== Example 3: Serialize with all fields ===
+2025-11-13 10:20:35.625 [main] INFO  com.example.AnnotationExample - Serialized Person:
+{
+  "id" : 789,
+  "fullName" : "Alice Johnson",
+  "email" : "alice.johnson@example.com",
+  "dateOfBirth" : "1985-05-20",
+  "enabled" : true,
+  "role" : "Developer",
+  "department" : "Engineering"
+}
+2025-11-13 10:20:35.625 [main] INFO  com.example.AnnotationExample - 
+=== Example 4: Handle unknown properties ===
+2025-11-13 10:20:35.626 [main] INFO  com.example.AnnotationExample - Person with unknown fields deserialized: {
+  "id" : 999,
+  "fullName" : "Bob Brown",
+  "enabled" : true,
+  "unknownField1" : "value1",
+  "unknownField2" : 12345
+}
+2025-11-13 10:20:35.627 [main] INFO  com.example.AnnotationExample - Unknown fields stored in metadata: {unknownField1=value1, unknownField2=12345}
