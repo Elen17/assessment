@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.Map;
 
 @Component
+@SessionScope
 public class MovieRecommender {
     private static final SimpleDateFormat FORMATTER = new SimpleDateFormat("yyyy-MM-dd");
 

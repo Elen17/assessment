@@ -2575,6 +2575,189 @@ and the property will be ignored if it cannot be autowired. This allows properti
 can be optionally overridden via dependency injection.
 
 ----
+Instantiating the Spring Container by Using AnnotationConfigApplicationContext
+----
+
+When @Configuration classes are provided as input, the @Configuration class itself is registered as a bean definition and all declared @Bean methods within the class are also registered as bean definitions.
+
+AnnotationConfigApplicationContext is not limited to working only with @Configuration classes. Any @Component or JSR-330 annotated class may be supplied as input to the constructor,
+as the following example shows:
+
+```java
+public static void main(String[] args) {
+	ApplicationContext ctx = new AnnotationConfigApplicationContext(MyServiceImpl.class, Dependency1.class, Dependency2.class);
+	MyService myService = ctx.getBean(MyService.class);
+	myService.doStuff();
+}
+```
+
+You can manually register beans with the ApplicationContext using the register() method:
+
+```java
+public static void main(String[] args) {
+	AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+	ctx.register(AppConfig.class, OtherConfig.class);
+	ctx.register(AdditionalConfig.class);
+	ctx.refresh(); // update context after registration of beans and configurations
+	MyService myService = ctx.getBean(MyService.class);
+	myService.doStuff();
+}
+```
+
+@ComponentScan(basePackages = "com.acme") - enable Component scanning for a given base package(and its subpackages)
+
+You can also scan through application context: 
+
+```java 
+public static void main(String[] args) {
+    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+    ctx.scan("com.acme");
+    ctx.refresh();
+    MyService myService = ctx.getBean(MyService.class);
+}
+```
+
+```note
+A WebApplicationContext variant of AnnotationConfigApplicationContext is available with AnnotationConfigWebApplicationContext.
+```
+
+```web.xml
+<web-app>
+	<!-- Configure ContextLoaderListener to use AnnotationConfigWebApplicationContext
+		instead of the default XmlWebApplicationContext -->
+	<context-param>
+		<param-name>contextClass</param-name>
+		<param-value>
+			org.springframework.web.context.support.AnnotationConfigWebApplicationContext
+		</param-value>
+	</context-param>
+
+	<!-- Configuration locations must consist of one or more comma- or space-delimited
+		fully-qualified @Configuration classes. Fully-qualified packages may also be
+		specified for component-scanning -->
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>com.acme.AppConfig</param-value>
+	</context-param>
+
+	<!-- Bootstrap the root application context as usual using ContextLoaderListener -->
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
+	<!-- Declare a Spring MVC DispatcherServlet as usual -->
+	<servlet>
+		<servlet-name>dispatcher</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<!-- Configure DispatcherServlet to use AnnotationConfigWebApplicationContext
+			instead of the default XmlWebApplicationContext -->
+		<init-param>
+			<param-name>contextClass</param-name>
+			<param-value>
+				org.springframework.web.context.support.AnnotationConfigWebApplicationContext
+			</param-value>
+		</init-param>
+		<!-- Again, config locations must consist of one or more comma- or space-delimited
+			and fully-qualified @Configuration classes -->
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>com.acme.web.MvcConfig</param-value>
+		</init-param>
+	</servlet>
+
+	<!-- map all requests for /app/* to the dispatcher servlet -->
+	<servlet-mapping>
+		<servlet-name>dispatcher</servlet-name>
+		<url-pattern>/app/*</url-pattern>
+	</servlet-mapping>
+</web-app>
+```
+
+---
+Using the @Bean Annotation
+---
+
+@Bean - a method-level annotation. The annotation supports some of the attributes offered by <bean/>, such as:
+
+    init-method
+    destroy-method
+    autowiring
+    name
+
+You can use the @Bean annotation in a @Configuration-annotated or in a @Component-annotated class.
+
+#### Receiving Lifecycle Callbacks
+Any classes defined with the @Bean annotation support the regular lifecycle callbacks and can use the @PostConstruct and @PreDestroy annotations from JSR-250.
+See JSR-250 annotations for further details.
+
+The regular Spring lifecycle callbacks are fully supported as well. If a bean implements InitializingBean, DisposableBean, or Lifecycle,
+their respective methods are called by the container.
+
+The standard set of *Aware interfaces (such as BeanFactoryAware, BeanNameAware, MessageSourceAware, ApplicationContextAware, and so on) are also fully supported.
+
+```java
+public class BeanOne {
+
+	public void init() {
+		// initialization logic
+	}
+}
+
+public class BeanTwo {
+
+	public void cleanup() {
+		// destruction logic
+	}
+}
+
+@Configuration
+public class AppConfig {
+
+	@Bean(initMethod = "init")
+	public BeanOne beanOne() {
+		return new BeanOne();
+	}
+
+	@Bean(destroyMethod = "cleanup")
+	public BeanTwo beanTwo() {
+		return new BeanTwo();
+	}
+}
+```
+
+```note importamt
+By default, beans defined with Java configuration that have a public close or shutdown method are automatically enlisted with a destruction callback. 
+If you have a public close or shutdown method and you do not wish for it to be called when the container shuts down, you can add @Bean(destroyMethod = "") 
+to your bean definition to disable the default (inferred) mode.
+```
+
+```java (update destroy method, to not call close/shutdown (default))
+@Bean(destroyMethod = "")
+public DataSource dataSource() throws NamingException {
+	return (DataSource) jndiTemplate.lookup("MyDS");
+}
+```
+
+ScopedProxyMode - proxyMode support through @Scope annotation:
+
+    ScopedProxyMode.DEFAULT - Default typically equals NO, unless a different default has been configured at the component-scan instruction level.
+    ScopedProxyMode.TARGET_CLASS - Create a class-based proxy (uses CGLIB).
+    ScopedProxyMode.INTERFACES - Create a JDK dynamic proxy implementing all interfaces exposed by the class of the target object.
+    ScopedProxyMode.NO - Do not create a scoped proxy.
+
+
+```note
+
+@Target({TYPE,METHOD})
+@Retention(RUNTIME)
+@Documented
+@Scope("session")
+public @interface SessionScope
+
+@SessionScope is a specialization of @Scope for a component whose lifecycle is bound to the current web session.
+
+Specifically, @SessionScope is a composed annotation that acts as a shortcut for @Scope("session") with the default proxyMode() set to TARGET_CLASS. (Create a class-based proxy (uses CGLIB).)
+```
 
 ### Scoped Beans as Dependencies
 
