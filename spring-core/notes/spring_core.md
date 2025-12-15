@@ -3263,6 +3263,1143 @@ collaborating objects, as the following example shows:
 ```
 
 ---
+Using the @Configuration annotation
+---
+
+```java
+@Configuration
+public class AppConfig {
+
+	@Bean
+	public BeanOne beanOne() {
+		return new BeanOne(beanTwo());
+	}
+
+	@Bean
+	public BeanTwo beanTwo() {
+		return new BeanTwo();
+	}
+}
+```
+This method of declaring inter-bean dependencies works only when the @Bean method is declared within a @Configuration class.
+You cannot declare inter-bean dependencies by using plain @Component classes.
+
+
+
+---
+Lookup Method Injection
+---
+
+As noted earlier, lookup method injection is an advanced feature that you should use rarely.
+It is useful in cases where a singleton-scoped bean has a dependency on a prototype-scoped bean.
+Using Java for this type of configuration provides a natural means for implementing this pattern.
+The following example shows how to use lookup method injection:
+
+```java
+public abstract class CommandManager {
+public Object process(Object commandState) {
+// grab a new instance of the appropriate Command interface
+Command command = createCommand();
+// set the state on the (hopefully brand new) Command instance
+command.setState(commandState);
+return command.execute();
+}
+
+	// okay... but where is the implementation of this method?
+	protected abstract Command createCommand();
+}
+```
+By using Java configuration, you can create a subclass of CommandManager where the abstract createCommand()
+method is overridden in such a way that it looks up a new (prototype) command object.
+The following example shows how to do so:
+
+```java
+@Bean
+@Scope("prototype")
+public AsyncCommand asyncCommand() {
+AsyncCommand command = new AsyncCommand();
+// inject dependencies here as required
+return command;
+}
+
+@Bean
+public CommandManager commandManager() {
+// return new anonymous implementation of CommandManager with createCommand()
+// overridden to return a new prototype Command object
+return new CommandManager() {
+protected Command createCommand() {
+return asyncCommand();
+}
+}
+}
+```
+
+```TIP
+All @Configuration classes are subclassed at startup-time with CGLIB
+```
+
+```TIP
+There are a few restrictions due to the fact that CGLIB dynamically adds features at startup-time.
+In particular, configuration classes must not be final.
+However, any constructors are allowed on configuration classes,
+including the use of @Autowired or a single non-default constructor declaration for default injection.
+
+If you prefer to avoid any CGLIB-imposed limitations, consider declaring your @Bean methods on non-@Configuration classes
+(for example, on plain @Component classes instead) or by annotating your configuration class with @Configuration(proxyBeanMethods = false). 
+Cross-method calls between @Bean methods are then not intercepted, so you have to exclusively rely on dependency injection at the constructor or method level there.
+```
+
+
+---
+Fully-qualifying imported beans for ease of navigation
+---
+
+This tight coupling can be somewhat mitigated by using interface-based or abstract class-based @Configuration classes. 
+Consider the following example:
+
+```java
+@Configuration
+public class ServiceConfig {
+
+	@Autowired
+	private RepositoryConfig repositoryConfig;
+
+	@Bean
+	public TransferService transferService() {
+		return new TransferServiceImpl(repositoryConfig.accountRepository());
+	}
+}
+
+@Configuration
+public interface RepositoryConfig {
+
+	@Bean
+	AccountRepository accountRepository();
+}
+
+@Configuration
+public class DefaultRepositoryConfig implements RepositoryConfig {
+
+	@Bean
+	public AccountRepository accountRepository() {
+		return new JdbcAccountRepository(...);
+	}
+}
+
+@Configuration
+@Import({ServiceConfig.class, DefaultRepositoryConfig.class})  // import the concrete config!
+public class SystemTestConfig {
+
+	@Bean
+	public DataSource dataSource() {
+		// return DataSource
+	}
+
+}
+
+public static void main(String[] args) {
+	ApplicationContext ctx = new AnnotationConfigApplicationContext(SystemTestConfig.class);
+	TransferService transferService = ctx.getBean(TransferService.class);
+	transferService.transfer(100.00, "A123", "C456");
+}
+```
+
+Now ServiceConfig is loosely coupled with respect to the concrete DefaultRepositoryConfig, and built-in IDE tooling is still useful:
+You can easily get a type hierarchy of RepositoryConfig implementations.
+In this way, navigating @Configuration classes and their dependencies becomes no different than the usual process of navigating interface-based code.
+
+---
+Influencing the Startup of @Bean-defined Singletons
+---
+
+If you want to influence the startup creation order of certain singleton beans,
+consider declaring some of them as @Lazy for creation on first access instead of on startup.
+
+@DependsOn forces certain other beans to be initialized first, making sure that the specified beans are created before 
+the current bean, beyond what the latter’s direct dependencies imply.
+
+
+---
+Background Initialization
+---
+
+As of 6.2, there is a background initialization option: @Bean(bootstrap=BACKGROUND) allows for singling out specific beans for background initialization,
+covering the entire bean creation step for each such bean on context startup.
+
+Dependent beans with non-lazy injection points automatically wait for the bean instance to be completed.
+All regular background initializations are forced to complete at the end of context startup.
+Only beans additionally marked as @Lazy are allowed to be completed later (up until the first actual access).
+
+Background initialization typically goes together with @Lazy (or ObjectProvider) injection points in dependent beans.
+Otherwise, the main bootstrap thread is going to block when an actual background-initialized bean instance needs to be injected early.
+
+---
+Conditionally Include @Configuration Classes or @Bean Methods
+---
+
+The @Conditional annotation indicates specific org.springframework.context.annotation.Condition implementations that should be consulted before a @Bean is registered.
+
+---
+Importing xml to @Configuration
+---
+
+````java
+@Configuration
+@ImportResource("classpath:/com/acme/properties-config.xml")
+public class AppConfig {
+
+	@Value("${jdbc.url}")
+	private String url;
+
+	@Value("${jdbc.username}")
+	private String username;
+
+	@Value("${jdbc.password}")
+	private String password;
+
+	@Bean
+	public DataSource dataSource() {
+		return new DriverManagerDataSource(url, username, password);
+	}
+
+	@Bean
+	public AccountRepository accountRepository(DataSource dataSource) {
+		return new JdbcAccountRepository(dataSource);
+	}
+
+	@Bean
+	public TransferService transferService(AccountRepository accountRepository) {
+		return new TransferServiceImpl(accountRepository);
+	}
+
+}
+````
+        
+---
+Programmatic Bean Registration
+---        
+
+As of Spring Framework 7, a first-class support for programmatic bean registration is provided via the `BeanRegistrar`
+interface that can be implemented to register beans programmatically in a flexible and efficient way.
+
+```java
+@Configuration
+@Import(MyBeanRegistrar.class)
+class MyConfiguration {
+}
+```
+
+#### Activating profile
+```java
+AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+ctx.getEnvironment().setActiveProfiles("development"); // spring.profiles.active
+ctx.register(SomeConfig.class, StandaloneDataConfig.class, JndiDataConfig.class);
+ctx.refresh();
+```
+
+Default Profile
+The default profile represents the profile that is enabled if no profile is active. Consider the following example:
+
+```java
+@Configuration
+@Profile("default")
+public class DefaultDataConfig {
+
+	@Bean
+	public DataSource dataSource() {
+		return new EmbeddedDatabaseBuilder()
+			.setType(EmbeddedDatabaseType.HSQL)
+			.addScript("classpath:com/bank/config/sql/schema.sql")
+			.build();
+	}
+}
+```
+
+If no profile is active, the dataSource is created. 
+You can see this as a way to provide a default definition for one or more beans. 
+If any profile is enabled, the default profile does not apply. 
+
+The name of the default profile is default. You can change the name of the default profile 
+by using setDefaultProfiles() on the Environment or, declaratively, by using the spring.profiles.default property.
+       
+---
+Placeholder Resolution in Statements
+---
+
+```xml
+<beans>
+	<import resource="com/bank/service/${customer}-config.xml"/>
+</beans>
+```
+
+In Spring, **Aware interfaces** are a **callback mechanism** that let a bean **“become aware of” internal Spring infrastructure objects** (container, environment, resources, etc.) **without manual lookup**.
+
+They are used when a bean needs **direct access to container-level facilities**, not just other application beans.
+
+---
+
+# 🔑 Core Idea
+
+Normally, Spring follows **Dependency Injection**:
+
+> *You get what you need via constructor / field / setter injection.*
+
+**Aware interfaces are an exception**:
+
+> *Spring injects internal framework objects into your bean by calling a method.*
+
+```text
+Bean created
+ → Dependencies injected
+ → Aware callbacks invoked
+ → @PostConstruct
+ → Bean ready
+```
+
+---
+
+# 🧠 Why Aware Interfaces Exist
+
+They solve problems that **normal @Autowired cannot**:
+
+| Problem                 | Why @Autowired is not enough |
+| ----------------------- | ---------------------------- |
+| Need ApplicationContext | Not a regular bean           |
+| Need Bean name          | No bean exists for it        |
+| Need class loader       | JVM-level                    |
+| Need Environment early  | Before full context          |
+| Need Resource loading   | Framework-managed            |
+
+---
+
+# 🧩 Most Important Aware Interfaces (Grouped)
+
+---
+
+## 1️⃣ Container Awareness
+
+### `ApplicationContextAware`
+
+### What it gives
+
+* Full access to the Spring container
+
+```java
+@Component
+public class ContextAwareBean implements ApplicationContextAware {
+
+    private ApplicationContext context;
+
+    @Override
+    public void setApplicationContext(ApplicationContext ctx) {
+        this.context = ctx;
+    }
+
+    public Object getAnyBean(String name) {
+        return context.getBean(name);
+    }
+}
+```
+
+### Use cases
+
+* Dynamic bean lookup
+* Plugin systems
+* Framework libraries
+
+⚠️ **Avoid in business logic** (tight coupling).
+
+---
+
+### `BeanFactoryAware` (Lower-level)
+
+```java
+@Component
+public class FactoryAware implements BeanFactoryAware {
+
+    private BeanFactory beanFactory;
+
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) {
+        this.beanFactory = beanFactory;
+    }
+}
+```
+
+✔ Prefer `ApplicationContextAware` unless you need minimal features.
+
+---
+
+## 2️⃣ Bean Metadata Awareness
+
+### `BeanNameAware`
+
+```java
+@Component
+public class NamedBean implements BeanNameAware {
+
+    @Override
+    public void setBeanName(String name) {
+        System.out.println("My bean name is " + name);
+    }
+}
+```
+
+### Use cases
+
+* Logging
+* Registries
+* Self-identification
+
+---
+
+### `BeanClassLoaderAware`
+
+```java
+@Component
+public class ClassLoaderAwareBean
+        implements BeanClassLoaderAware {
+
+    @Override
+    public void setBeanClassLoader(ClassLoader cl) {
+        // useful for dynamic proxies
+    }
+}
+```
+
+---
+
+## 3️⃣ Environment & Configuration Awareness
+
+### `EnvironmentAware`
+
+```java
+@Component
+public class EnvAware implements EnvironmentAware {
+
+    @Override
+    public void setEnvironment(Environment env) {
+        String profile = env.getActiveProfiles()[0];
+        System.out.println(profile);
+    }
+}
+```
+
+### Use cases
+
+* Conditional behavior
+* Feature toggles
+* Profile-based logic
+
+---
+
+### `EmbeddedValueResolverAware`
+
+```java
+@Component
+public class ValueResolverAware
+        implements EmbeddedValueResolverAware {
+
+    @Override
+    public void setEmbeddedValueResolver(StringValueResolver resolver) {
+        String val = resolver.resolveStringValue("${app.name}");
+    }
+}
+```
+
+Used internally by Spring more than by apps.
+
+---
+
+## 4️⃣ Resource Awareness
+
+### `ResourceLoaderAware`
+
+```java
+@Component
+public class ResourceAware implements ResourceLoaderAware {
+
+    @Override
+    public void setResourceLoader(ResourceLoader loader) {
+        Resource r = loader.getResource("classpath:data.txt");
+    }
+}
+```
+
+Alternative:
+
+```java
+@Autowired
+ResourceLoader resourceLoader;
+```
+
+✔ Prefer injection unless you need early access.
+
+---
+
+## 5️⃣ Event Awareness
+
+### `ApplicationEventPublisherAware`
+
+```java
+@Component
+public class EventAware
+        implements ApplicationEventPublisherAware {
+
+    private ApplicationEventPublisher publisher;
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher p) {
+        this.publisher = p;
+    }
+}
+```
+
+Equivalent to:
+
+```java
+@Autowired
+ApplicationEventPublisher publisher;
+```
+
+---
+
+## 6️⃣ Message / i18n Awareness
+
+### `MessageSourceAware`
+
+```java
+@Component
+public class MessageAware
+        implements MessageSourceAware {
+
+    @Override
+    public void setMessageSource(MessageSource messageSource) {
+        String msg = messageSource.getMessage("greeting", null, Locale.ENGLISH);
+    }
+}
+```
+
+---
+
+## 7️⃣ Load-Time Weaving Awareness (Advanced)
+
+### `LoadTimeWeaverAware`
+
+```java
+@Component
+public class WeavingAware
+        implements LoadTimeWeaverAware {
+
+    @Override
+    public void setLoadTimeWeaver(LoadTimeWeaver weaver) {
+        // instrumentation, aspects, JPA enhancement
+    }
+}
+```
+
+### Use cases
+
+* AspectJ LTW
+* JPA entity enhancement
+* Bytecode manipulation
+
+---
+
+# ⚙️ Lifecycle Position (IMPORTANT)
+
+Aware interfaces are called **before** `@PostConstruct`.
+
+```text
+Constructor
+ → @Autowired injection
+ → *Aware callbacks*
+ → @PostConstruct
+ → Bean ready
+```
+
+This makes them useful for **early initialization logic**.
+
+---
+
+# ⚠️ When You SHOULD Use Aware Interfaces
+
+✅ Framework code
+✅ Infrastructure beans
+✅ Libraries / starters
+✅ Dynamic bean resolution
+✅ Early lifecycle hooks
+
+---
+
+# 🚫 When You SHOULD NOT Use Them
+
+❌ Business services
+❌ Domain logic
+❌ Controllers
+❌ Replacing DI
+
+**Rule of thumb**:
+
+> If constructor injection works → use constructor injection.
+
+---
+
+# 🆚 Aware Interfaces vs @Autowired
+
+| Aspect           | @Autowired  | Aware          |
+| ---------------- | ----------- | -------------- |
+| Style            | Declarative | Callback       |
+| Coupling         | Low         | High           |
+| Testability      | High        | Lower          |
+| Lifecycle timing | Normal      | Early          |
+| Intended use     | App logic   | Infrastructure |
+
+---
+
+# 🧠 Mental Model
+
+Think of Aware interfaces as:
+
+> **“Backstage passes” to the Spring container”**
+
+They are **powerful**, but **not for everyday use**.
+
+---
+
+
+Absolutely — here’s a clear, structured, *flow-oriented* explanation of **Spring’s Data Binding (from the reference you linked)** plus informative descriptions of the key concepts involved. I’ll break this down so you can understand how data moves through the binding + validation process in Spring.
+
+---
+
+## 📌 **Overview: What This Chapter Covers**
+
+Spring’s data binding and validation subsystem is about converting external data (typically user input from web requests) into Java objects, and then optionally validating those objects. ([Home][1])
+
+There are three major pieces involved:
+
+1. 🧱 **Data Binding** — taking data and putting it onto Java object properties
+2. 🔄 **Type Conversion** — turning text into the right Java types
+3. ✔️ **Validation** — checking that values meet expectations
+
+---
+
+## 🧠 **1) Data Binding — Moving Values into Your Object**
+
+### 🔹 **What is Data Binding?**
+
+Data binding is the process where Spring takes a set of values (usually a map of property names to strings) and *assigns them to a Java object’s properties*. It’s what makes something like this work:
+
+```java
+User user = new User();
+user.setName("Alice");
+user.setAge(30);
+```
+
+without you writing that code yourself — Spring *automatically* does it from incoming data. ([Home][2])
+
+### 🔹 **How It Works Under the Hood**
+
+The key class is:
+
+📦 **`DataBinder`**
+
+> Responsible for binding values to a target Java object using property accessors (setters). ([Home][2])
+
+Steps in data binding:
+
+1. **Input values are provided** — usually from HTTP request parameters or a map of property paths.
+2. **Matching property names to setters** — Spring finds JavaBean property names in the input that match setters on your object. ([Home][2])
+3. **Type conversion happens** — e.g., `"25"` → `int 25` → assigned to `user.setAge(25)`.
+4. **Errors are collected** — if a property doesn’t exist or can’t be converted, Spring records errors internally.
+
+👉 *Result:* Your target object is populated with type-safe values without manual parsing. ([Home][2])
+
+📌 Note: Depending on version, Spring supports **constructor binding** (binding via a constructor instead of setters) too. ([Home][2])
+
+---
+
+## 🔄 **2) Type Conversion — Turning Strings into Java Types**
+
+Web requests often send everything as **strings** — even numbers, dates, enums, booleans. Spring has two mechanisms to deal with this:
+
+### 🧩 **PropertyEditors** (older approach)
+
+These come from JavaBeans and convert text to objects — e.g., `"2025-01-01"` → `LocalDate`. ([Home][2])
+
+You can register your own for custom formats. ([Home][2])
+
+### ⚙️ **ConversionService + Converters/Formatters**
+
+A newer, more flexible system than PropertyEditors, introduced in Spring to unify type conversion (e.g., for REST, WebFlux, etc.). ([Home][3])
+
+You can register custom **Converter** or **Formatter** implementations to control precisely how values are converted. ([Home][3])
+
+**Example:** Converting `"true"` → `Boolean.TRUE`, `"123"` → `Integer.valueOf(123)`, etc. ([Home][3])
+
+---
+
+## 🧪 **3) Validation — Ensuring Values Make Sense**
+
+Data binding clarifies *how values are assigned* — validation checks *whether those values are valid*.
+
+### 🔹 **Validator Interface (Spring’s Own)**
+
+Spring defines:
+
+```java
+public interface Validator {
+    boolean supports(Class<?> clazz);
+    void validate(Object target, Errors errors);
+}
+```
+
+You implement this interface to check business rules — e.g., passwords must match confirmation. ([Home][1])
+
+**Process:**
+
+1. Bind values into the object.
+2. Invoke the validator (if configured) via `binder.validate()`.
+3. Errors are stored in a **BindingResult**. ([Home][1])
+
+```java
+DataBinder binder = new DataBinder(target);
+binder.setValidator(new MyValidator());
+binder.bind(propertyValues);
+binder.validate();
+BindingResult result = binder.getBindingResult();
+```
+
+Errors appear in `result` instead of exceptions. ([Home][4])
+
+---
+
+## 🧷 **4) BindingResult — Where Errors Are Stored**
+
+During binding and validation, Spring collects issues into a `BindingResult`.
+
+### What it contains:
+
+✔ Field errors (conversion problems)
+✔ Validation errors (constraint violations)
+✔ Global errors (object-level validation failures)
+
+You inspect it like:
+
+```java
+if (bindingResult.hasErrors()) {
+    // handle them (e.g., return an error response)
+}
+```
+
+In Spring MVC, `BindingResult` is typically paired with a controller method parameter immediately after the bound object (e.g., `@Valid User user, BindingResult br`). Spring fills this for you automatically.
+
+---
+
+## 📐 **Typical Flow in Spring MVC**
+
+Here’s the order of operations for a web request:
+
+1. Client sends a request (form data / JSON).
+2. Spring chooses the controller handler method.
+3. Spring creates a target object and **binds** request data into it.
+
+    * Uses `DataBinder` behind the scenes.
+4. Spring performs **type conversion** (string → type) as needed.
+5. If `@Valid`/validator is configured, Spring **validates** the object.
+6. Any errors go in `BindingResult`.
+7. Controller method executes — you check `bindingResult` for errors and handle them. ([Home][4])
+
+---
+
+## 🛠 **Useful Concepts & Hooks**
+
+### 🧰 **@InitBinder methods**
+
+Inside controllers, you can customize binding specific to that controller or model attribute — e.g., add custom formatters or allowed fields:
+
+```java
+@InitBinder
+public void init(WebDataBinder binder) {
+    binder.addCustomFormatter(new DateFormatter("yyyy-MM-dd"));
+}
+```
+
+This runs before binding and lets you tune type conversion or validation. ([Home][5])
+
+---
+
+## 📌 **Summary: How It All Fits Together**
+
+| Stage               | What Happens                          | Who Does It                            |
+| ------------------- | ------------------------------------- | -------------------------------------- |
+| **Binding**         | Move raw values into object           | `DataBinder`                           |
+| **Type Conversion** | Convert strings → target types        | `ConversionService` / `PropertyEditor` |
+| **Validation**      | Check constraints on resulting object | `Validator` / Bean Validation          |
+| **Error Handling**  | Results captured                      | `BindingResult`                        |
+
+---
+
+## 🧾 **Key Takeaways**
+
+✅ Spring automatically binds input to objects. ([Home][2])
+✅ Type conversion is handled seamlessly with extensible hooks. ([Home][3])
+✅ Validation is decoupled and pluggable — can use JSR-303 (`@Valid`) or Spring `Validator`. ([Home][1])
+✅ You can customize all parts using `@InitBinder`, custom converters, editors, and validators. ([Home][5])
+
+---
+
+If you want, I can also provide a **diagram/sequence flow** showing how these pieces interact at runtime, or an example Spring Boot controller that uses all of these concepts together in practice. Just let me know!
+
+[1]: https://docs.spring.io/spring-framework/reference/core/validation.html?utm_source=chatgpt.com "Validation, Data Binding, and Type Conversion :: Spring Framework"
+[2]: https://docs.spring.io/spring/reference/7.0/core/validation/data-binding.html?utm_source=chatgpt.com "Data Binding :: Spring Framework"
+[3]: https://docs.spring.io/spring-framework/docs/4.1.x/spring-framework-reference/html/validation.html?utm_source=chatgpt.com "7. Validation, Data Binding, and Type Conversion"
+[4]: https://docs.spring.io/spring-framework/docs/4.0.7.RELEASE/spring-framework-reference/pdf/spring-framework-reference.pdf?utm_source=chatgpt.com "Spring Framework Reference Documentation"
+[5]: https://docs.spring.io/spring-framework/reference/web/webflux/controller/ann-initbinder.html?utm_source=chatgpt.com "DataBinder :: Spring Framework"
+
+
+## Data Binding
+Data binding is useful for binding user input to a target object where user input is a map with property paths as keys, following JavaBeans conventions. DataBinder is the main class that supports this, and it provides two ways to bind user input:
+
+Constructor binding - bind user input to a public data constructor, looking up constructor argument values in the user input.
+
+Property binding - bind user input to setters, matching keys from the user input to properties of the target object structure.
+
+You can apply both constructor and property binding or only one.
+
+## PropertyEditors
+
+Spring uses the concept of a PropertyEditor to effect the conversion between an Object and a String.
+It can be handy to represent properties in a different way than the object itself. 
+For example, a Date can be represented in a human readable way (as the String: '2007-14-09'),
+while we can still convert the human readable form back to the original date (or, even better,
+convert any date entered in a human readable form back to Date objects).
+This behavior can be achieved by registering custom editors of type java.beans.PropertyEditor. 
+Registering custom editors on a BeanWrapper or, alternatively, in a specific IoC container (as mentioned in the previous chapter),
+gives it the knowledge of how to convert properties to the desired type.
+
+Spring has a number of built-in PropertyEditor implementations to make life easy. 
+They are all located in the org.springframework.beans.propertyeditors package.
+Most, (but not all, as indicated in the following table) are, by default, registered by BeanWrapperImpl.
+
+
+```kotlin notebook
+Note also that the standard JavaBeans infrastructure automatically discovers PropertyEditor classes (without you having to register them explicitly)
+if they are in the same package as the class they handle and have the same name as that class, with Editor appended.
+For example, one could have the following class and package structure, which would be sufficient for the SomethingEditor
+class to be recognized and used as the PropertyEditor for Something-typed properties.
+```
+
+```kotlin notebook
+com
+  chank
+    pop
+      Something
+      SomethingEditor // the PropertyEditor for the Something class
+```
+
+same for BeanInfo: 
+
+``` kotlin notebook
+com
+  chank
+    pop
+      Something
+      SomethingBeanInfo // the BeanInfo for the Something class
+```
+
+```java
+// BeanInfo example
+public class SomethingBeanInfo extends SimpleBeanInfo {
+
+	public PropertyDescriptor[] getPropertyDescriptors() {
+		try {
+			final PropertyEditor numberPE = new CustomNumberEditor(Integer.class, true);
+			PropertyDescriptor ageDescriptor = new PropertyDescriptor("age", Something.class) {
+				@Override
+				public PropertyEditor createPropertyEditor(Object bean) {
+					return numberPE;
+				}
+			};
+			return new PropertyDescriptor[] { ageDescriptor };
+		}
+		catch (IntrospectionException ex) {
+			throw new Error(ex.toString());
+		}
+	}
+}
+```
+
+### PropertyEditorRegistrar
+
+```java
+package com.foo.editors.spring;
+
+public final class CustomPropertyEditorRegistrar implements PropertyEditorRegistrar {
+
+	public void registerCustomEditors(PropertyEditorRegistry registry) {
+
+		// it is expected that new PropertyEditor instances are created
+		registry.registerCustomEditor(ExoticType.class, new ExoticTypeEditor());
+
+		// you could register as many custom property editors as are required here...
+	}
+}
+
+///
+
+@Controller
+public class RegisterUserController {
+
+    private final PropertyEditorRegistrar customPropertyEditorRegistrar;
+
+    RegisterUserController(PropertyEditorRegistrar propertyEditorRegistrar) {
+        this.customPropertyEditorRegistrar = propertyEditorRegistrar;
+    }
+
+    @InitBinder
+    void initBinder(WebDataBinder binder) {
+        this.customPropertyEditorRegistrar.registerCustomEditors(binder);
+    }
+
+    // other methods related to registering a User
+}
+```
+
+This style of PropertyEditor registration can lead to concise code 
+(the implementation of the @InitBinder method is only one line long)
+and lets common PropertyEditor registration code be encapsulated in a class
+and then shared amongst as many controllers as needed.
+
+## Spring Type Conversion
+
+## Spring Type Conversion
+The core.convert package provides a general type conversion system. 
+The system defines an SPI to implement type conversion logic and an API to perform type conversions at runtime.
+Within a Spring container, you can use this system as an alternative to PropertyEditor implementations to convert externalized
+bean property value strings to the required property types.
+You can also use the public API anywhere in your application where type conversion is needed.
+
+```java
+// @see MyStringToDateConverter.java
+package org.springframework.core.convert.converter;
+
+public interface Converter<S, T> {
+
+	T convert(S source);
+}
+```
+
+## Using GenericConverter
+When you require a more sophisticated Converter implementation, consider using the GenericConverter interface. 
+With a more flexible but less strongly typed signature than Converter,
+a GenericConverter supports converting between multiple source and target types.
+
+```java
+package org.springframework.core.convert.converter;
+
+public interface GenericConverter {
+
+	public Set<ConvertiblePair> getConvertibleTypes();
+
+	Object convert(Object source, TypeDescriptor sourceType, TypeDescriptor targetType);
+}
+```
+
+```kotlin notebook
+Because GenericConverter is a more complex SPI interface, you should use it only when you need it.
+Favor Converter or ConverterFactory for basic type conversion needs.
+```
+
+```kotlin notebook
+If no ConversionService is registered with Spring, the original PropertyEditor-based system is used.
+```
+
+```java
+@Service
+public class MyService {
+
+	private final ConversionService conversionService;
+
+	public MyService(ConversionService conversionService) {
+		this.conversionService = conversionService;
+	}
+
+	public void doIt() {
+		this.conversionService.convert(...)
+	}
+}
+```
+
+```java
+DefaultConversionService cs = new DefaultConversionService();
+
+List<Integer> input = ...
+cs.convert(input,
+	TypeDescriptor.collection(List.class, TypeDescriptor.valueOf(Integer.class)),
+	TypeDescriptor.collection(List.class, TypeDescriptor.valueOf(String.class)));
+```
+
+## Spring Field Formatting
+
+In general, you can use the Converter SPI when you need to implement general-purpose type conversion logic — for example,
+for converting between a java.util.Date and a Long. You can use the Formatter SPI when you work in a client environment (such as a web application)
+and need to parse and print localized field values. The ConversionService provides a unified type conversion API for both SPIs.
+
+### The Formatter SPI
+
+```java
+package org.springframework.format;
+
+public interface Formatter<T> extends Printer<T>, Parser<T> {
+}
+```
+```java
+package org.springframework.format.datetime;
+
+public final class DateFormatter implements Formatter<Date> {
+
+	private String pattern;
+
+	public DateFormatter(String pattern) {
+		this.pattern = pattern;
+	}
+
+	public String print(Date date, Locale locale) {
+		if (date == null) {
+			return "";
+		}
+		return getDateFormat(locale).format(date);
+	}
+
+	public Date parse(String formatted, Locale locale) throws ParseException {
+		if (formatted.length() == 0) {
+			return null;
+		}
+		return getDateFormat(locale).parse(formatted);
+	}
+
+	protected DateFormat getDateFormat(Locale locale) {
+		DateFormat dateFormat = new SimpleDateFormat(this.pattern, locale);
+		dateFormat.setLenient(false);
+		return dateFormat;
+	}
+}
+```
+
+### Annotation-driven Formatting
+
+Field formatting can be configured by field type or annotation. To bind an annotation to a Formatter, implement AnnotationFormatterFactory.
+The following listing shows the definition of the AnnotationFormatterFactory interface:
+
+```java
+package org.springframework.format;
+
+public interface AnnotationFormatterFactory<A extends Annotation> {
+
+	Set<Class<?>> getFieldTypes();
+
+	Printer<?> getPrinter(A annotation, Class<?> fieldType);
+
+	Parser<?> getParser(A annotation, Class<?> fieldType);
+}
+```
+
+```java
+public final class NumberFormatAnnotationFormatterFactory
+		implements AnnotationFormatterFactory<NumberFormat> {
+
+	private static final Set<Class<?>> FIELD_TYPES = Set.of(Short.class,
+			Integer.class, Long.class, Float.class, Double.class,
+			BigDecimal.class, BigInteger.class);
+
+	public Set<Class<?>> getFieldTypes() {
+		return FIELD_TYPES;
+	}
+
+	public Printer<Number> getPrinter(NumberFormat annotation, Class<?> fieldType) {
+		return configureFormatterFrom(annotation, fieldType);
+	}
+
+	public Parser<Number> getParser(NumberFormat annotation, Class<?> fieldType) {
+		return configureFormatterFrom(annotation, fieldType);
+	}
+
+	private Formatter<Number> configureFormatterFrom(NumberFormat annotation, Class<?> fieldType) {
+		if (!annotation.pattern().isEmpty()) {
+			return new NumberStyleFormatter(annotation.pattern());
+		}
+		// else
+		return switch(annotation.style()) {
+			case Style.PERCENT -> new PercentStyleFormatter();
+			case Style.CURRENCY -> new CurrencyStyleFormatter();
+			default -> new NumberStyleFormatter();
+		};
+	}
+}
+```
+
+```java
+public class MyModel {
+
+	@NumberFormat(style=Style.CURRENCY)
+	private BigDecimal decimal;
+}
+```
+
+```java
+public class MyModel {
+
+	@DateTimeFormat(iso=ISO.DATE)
+	private Date date;
+}
+```
+
+
+## Configuring a Global Date and Time Format
+
+By default, date and time fields not annotated with @DateTimeFormat are converted from strings by using the DateFormat.SHORT style.
+If you prefer, you can change this by defining your own global format.
+To do that, ensure that Spring does not register default formatters.
+Instead, register formatters manually with the help of:
+
+** org.springframework.format.datetime.standard.DateTimeFormatterRegistrar
+** org.springframework.format.datetime.DateFormatterRegistrar
+
+
+```java
+@Configuration
+public class ApplicationConfiguration {
+
+	@Bean
+	public FormattingConversionService conversionService() {
+
+		// Use the DefaultFormattingConversionService but do not register defaults
+		DefaultFormattingConversionService conversionService =
+				new DefaultFormattingConversionService(false);
+
+		// Ensure @NumberFormat is still supported
+		conversionService.addFormatterForFieldAnnotation(
+				new NumberFormatAnnotationFormatterFactory());
+
+		// Register JSR-310 date conversion with a specific global format
+		DateTimeFormatterRegistrar dateTimeRegistrar = new DateTimeFormatterRegistrar();
+		dateTimeRegistrar.setDateFormatter(DateTimeFormatter.ofPattern("yyyyMMdd"));
+		dateTimeRegistrar.registerFormatters(conversionService);
+
+		// Register date conversion with a specific global format
+		DateFormatterRegistrar dateRegistrar = new DateFormatterRegistrar();
+		dateRegistrar.setFormatter(new DateFormatter("yyyyMMdd"));
+		dateRegistrar.registerFormatters(conversionService);
+
+		return conversionService;
+	}
+}
+```
+
+
+## Java Bean Validation
+
 
 ## Bean Lifecycle
 
