@@ -4397,9 +4397,1351 @@ public class ApplicationConfiguration {
 }
 ```
 
-
 ## Java Bean Validation
 
+```java
+public class PersonForm {
+
+	@NotNull
+	@Size(max=64)
+	private String name;
+
+	@Min(0)
+	private int age;
+}
+```
+
+## Configuring a Bean Validation Provider
+
+Spring provides full support for the Bean Validation API including the bootstrapping of a Bean Validation provider as a Spring bean.
+This lets you inject a jakarta.validation.ValidatorFactory or jakarta.validation.Validator wherever validation is needed in your application.
+
+```java
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+
+@Configuration
+public class AppConfig {
+
+	@Bean
+	public LocalValidatorFactoryBean validator() {
+		return new LocalValidatorFactoryBean();
+	}
+}
+```
+
+## Inject Jakarta Validator
+
+LocalValidatorFactoryBean implements both jakarta.validation.ValidatorFactory and jakarta.validation.Validator, so you can inject a reference to the latter to apply
+validation logic if you prefer to work with the Bean Validation API directly, as the following example shows:
+
+In addition to implementing jakarta.validation.Validator, LocalValidatorFactoryBean also adapts to org.springframework.validation.Validator
+
+```java
+import jakarta.validation.Validator;
+
+@Service
+public class MyService {
+
+	@Autowired
+	private Validator validator;
+}
+```
+
+## Configure Custom Constraints
+
+```java
+@Target({ElementType.METHOD, ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy=MyConstraintValidator.class)
+public @interface MyConstraint {
+}
+```
+
+Here’s a **clear, practical explanation** of the Spring Bean Validation concepts from the article you pointed to, with emphasis on why/when to use certain pieces, *plus* examples.
+
+---
+
+## 🎯 Why define a **ValidatorFactory bean** (e.g., `LocalValidatorFactoryBean`)?
+
+In Spring you normally want a **shared validation engine** that the framework can use everywhere:
+
+### ✅ What it gives you
+
+* **Bootstraps a JSR-303/JSR-380 provider** (e.g., Hibernate Validator) automatically at app startup. Spring detects the provider on the classpath and sets it up as a Spring bean. ([Home][1])
+* Makes a `ValidatorFactory`/`Validator` injectable anywhere you need programmatic validation. ([Home][1])
+* Integrates with the Spring `Validator` interface too, so it can adapt constraint violations into Spring’s `Errors`/`FieldError`s. ([Home][1])
+* If you define one as `@Primary`, Spring MVC/Spring WebFlux will use your custom validator for controller method validation. ([Home][2])
+
+### Example: Bean config
+
+```java
+@Configuration
+public class ValidationConfig {
+
+    @Bean
+    public LocalValidatorFactoryBean validatorFactory() {
+        return new LocalValidatorFactoryBean();
+    }
+}
+```
+
+This bean implements:
+✔ `jakarta.validation.ValidatorFactory`
+✔ `jakarta.validation.Validator`
+✔ `org.springframework.validation.Validator`
+So Spring can wire it for you in different contexts. ([Home][1])
+
+---
+
+## 🆚 `@Valid` vs `@Validated`
+
+| Feature              | **@Valid**                                                  | **@Validated**                                      |
+| -------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
+| Origin               | Standard JSR-303 / Bean Validation                          | Spring Framework                                    |
+| Trigger validation   | Yes (JSR-303 rules)                                         | Yes (plus Spring extension logic)                   |
+| Supports groups      | ❌                                                           | ✅                                                   |
+| Works on classes too | Usually via method validation when paired with `@Validated` | 👌 Required for method-level validation with groups |
+
+### When to use which
+
+### 📌 `@Valid`
+
+* Use when validating **simple DTO fields**, especially in a controller.
+* Common on `@RequestBody`, `@ModelAttribute`.
+* **Doesn’t** validate method parameters on service beans without extra config.
+* Standard spec — good for basic constraint checking. ([Home][3])
+
+```java
+@PostMapping
+public void createUser(@Valid @RequestBody UserDto dto) {
+    // dto fields validated
+}
+```
+
+### 📌 `@Validated`
+
+* Spring’s extension — supports **validation groups**.
+* Required for **method-level validation** on Spring beans (services/controllers).
+* Place it **at class level** to trigger parameter/return validation on methods. ([Home][4])
+
+```java
+@Service
+@Validated
+public class AccountService {
+
+    public void transfer(@Min(0) BigDecimal amount) {
+        // constraints on method args enforce before method body runs
+    }
+}
+```
+
+👉 Note: By itself, `@Valid` doesn’t trigger *method parameter constraint validation* — that’s the job of Spring and the `MethodValidationPostProcessor` when paired with `@Validated`. ([Home][3])
+
+---
+
+## 🧠 Method Validation & Exceptions
+
+### 🔹 What is *Method Validation*?
+
+Beyond validating object graphs, Bean Validation can validate **method parameters and return values**. E.g.,
+
+```java
+public String sendEmail(@Email String emailAddress) {...}
+```
+
+JSR-303 providers (like Hibernate Validator) understand these constraint annotations and can throw exceptions before the method body runs.
+
+### 🔹 Spring support
+
+To enable this in Spring:
+
+1. Register a bean:
+
+```java
+@Bean
+public MethodValidationPostProcessor methodValidationPostProcessor() {
+    return new MethodValidationPostProcessor();
+}
+```
+
+2. Put `@Validated` on your Spring-managed class. ([Home][1])
+
+After that, Spring will create proxies and validate *method params & return values*.
+On violations, Spring will throw either:
+
+* `ConstraintViolationException`
+* (Or adapted) `MethodValidationException`
+  depending on configuration. ([Home][1])
+
+### 📌 MVC layer
+
+Spring MVC also uses validation automatically:
+
+* `@Valid @RequestBody` → binds and checks fields → throws `MethodArgumentNotValidException` if errors. ([Home][3])
+* Direct constraint on parameters (e.g., `@Min` on a controller param) → may produce `HandlerMethodValidationException`. ([Home][3])
+
+You can handle these exceptions globally with `@ControllerAdvice`.
+
+---
+
+## 🛠 Examples
+
+---
+
+### 1) **Existing Built-in Validations**
+
+#### DTO validation in REST
+
+```java
+public class CreateUserRequest {
+    @NotBlank
+    private String username;
+
+    @Email
+    private String email;
+}
+
+// Controller
+@PostMapping("/users")
+public ResponseEntity<Void> create(@Valid @RequestBody CreateUserRequest request) {
+    return ResponseEntity.ok().build();
+}
+```
+
+If username is blank, Spring MVC throws a 400 with `MethodArgumentNotValidException`. ([Home][3])
+
+---
+
+### 2) **Validation Groups with @Validated**
+
+```java
+public interface OnCreate {}
+public interface OnUpdate {}
+
+public class UserDto {
+    @NotNull(groups = OnUpdate.class)
+    private Long id;
+
+    @NotBlank(groups = {OnCreate.class, OnUpdate.class})
+    private String name;
+}
+
+@RestController
+public class UserController {
+
+    @PostMapping("/create")
+    public void create(@Validated(OnCreate.class) @RequestBody UserDto dto) {}
+}
+```
+
+This lets you reuse the same class with different validation contexts.
+
+---
+
+### 3) **Custom Constraint Example**
+
+#### Step 1: Define annotation
+
+```java
+@Target({ ElementType.FIELD })
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy = StartsWithValidator.class)
+public @interface StartsWith {
+    String value();
+    String message() default "must start with prefix";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+```
+
+#### Step 2: Create validator logic
+
+```java
+public class StartsWithValidator implements ConstraintValidator<StartsWith, String> {
+    private String prefix;
+
+    @Override
+    public void initialize(StartsWith constraint) {
+        this.prefix = constraint.value();
+    }
+
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext ctx) {
+        return value != null && value.startsWith(prefix);
+    }
+}
+```
+
+#### Step 3: Use it
+
+```java
+public class ProductDto {
+
+    @StartsWith("SKU-")
+    private String sku;
+}
+```
+
+If `sku` doesn’t start with `"SKU-"`, validation fails with a `ConstraintViolationException`.
+
+---
+
+### 4) **Method Validation Example**
+
+```java
+@Service
+@Validated
+public class OrderService {
+
+    public void placeOrder(@Min(1) int count) {
+        // if count < 1, throws ConstraintViolationException before method executes
+    }
+}
+```
+
+Remember to register `MethodValidationPostProcessor`.
+
+---
+
+## 🧨 Handling Exceptions
+
+### MVC / Controller Level
+
+You can catch these in a `@ControllerAdvice`:
+
+```java
+@RestControllerAdvice
+public class ValidationHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleInvalidInput(MethodArgumentNotValidException ex) {
+        return badRequest(ex.getBindingResult().getAllErrors());
+    }
+}
+```
+
+Also handle `ConstraintViolationException` for method-level violations.
+
+---
+
+## 📌 Summary
+
+**Use ValidatorFactory bean** so Spring centrally configures and injects your validation provider. ([Home][1])
+
+**Use `@Valid` for basic JSR-303 validation** in controllers and nested objects. ([Home][3])
+
+**Use `@Validated` when you need:**
+
+* Validation groups
+* Method-level constraint enforcement on Spring beans
+* Service layer validation beyond DTOs ([Home][4])
+
+**Enable Method Validation** with `MethodValidationPostProcessor`. ([Home][1])
+
+---
+
+If you want, I can also give you example tests for these setups or advice on how to structure DTO vs domain validation in a real project.
+
+[1]: https://docs.spring.io/spring-framework/reference/core/validation/beanvalidation.html?utm_source=chatgpt.com "Java Bean Validation :: Spring Framework"
+[2]: https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/validation.html?utm_source=chatgpt.com "Validation :: Spring Framework"
+[3]: https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-validation.html?utm_source=chatgpt.com "Validation :: Spring Framework"
+[4]: https://docs.spring.vmware.com/spring-framework/reference/core/validation/beanvalidation.html?utm_source=chatgpt.com "Java Bean Validation :: Spring Framework"
+
+
+--------------------------
+
+Totally fair 🙂
+`@Validated` is one of those Spring things that **sounds small but hides a big behavior change**.
+Let’s explain it **slowly, with mental models and concrete “what actually happens” steps**, and *only then* examples.
+
+---
+
+# 1️⃣ The core confusion (important)
+
+👉 **`@Validated` does NOT validate fields by itself**
+
+It is **NOT** a replacement for `@NotNull`, `@Size`, etc.
+
+Instead:
+
+> **`@Validated` tells Spring:
+> “For THIS bean, intercept method calls and run Bean Validation on method parameters / return values.”**
+
+That’s it.
+
+If you remember only one sentence, remember that one.
+
+---
+
+# 2️⃣ Why `@Valid` alone is not enough
+
+### What `@Valid` actually does
+
+`@Valid` is **just a marker** from Bean Validation (JSR-380).
+
+It means:
+
+> “If someone triggers validation here, validate this object graph.”
+
+It **does NOT trigger validation by itself**.
+
+So something else must **call the validator**.
+
+---
+
+# 3️⃣ Who actually triggers validation?
+
+### Case A: Spring MVC (Controllers)
+
+Spring MVC **automatically triggers validation** for:
+
+* `@RequestBody`
+* `@ModelAttribute`
+
+That’s why this works **without `@Validated`**:
+
+```java
+@PostMapping("/users")
+public void create(@Valid @RequestBody UserDto dto) {
+}
+```
+
+Spring MVC sees:
+
+1. `@RequestBody`
+2. `@Valid`
+3. → runs validation
+
+✅ No confusion here.
+
+---
+
+### Case B: Service / Component / Any Spring Bean
+
+Spring **does NOT automatically validate method arguments** of services.
+
+This **will NOT validate**:
+
+```java
+@Service
+public class UserService {
+
+    public void create(@NotNull String name) {
+    }
+}
+```
+
+❌ Nothing happens
+❌ No exception
+❌ Annotation is ignored
+
+Why?
+
+Because Spring does not intercept method calls **unless you tell it to**.
+
+---
+
+# 4️⃣ What `@Validated` really does (key part)
+
+When you put `@Validated` on a class:
+
+```java
+@Service
+@Validated
+public class UserService {
+}
+```
+
+You are telling Spring:
+
+> “Create a proxy for this bean.
+> Before calling any method, validate method parameters & return values.”
+
+### What changes internally
+
+Spring:
+
+1. Wraps the bean with a proxy
+2. Intercepts method calls
+3. Calls Bean Validation
+4. Throws an exception **before method body executes**
+
+This is called **Method Validation**.
+
+---
+
+# 5️⃣ Minimal working example (this is critical)
+
+### Configuration (required)
+
+```java
+@Bean
+public MethodValidationPostProcessor methodValidationPostProcessor() {
+    return new MethodValidationPostProcessor();
+}
+```
+
+Without this → `@Validated` does nothing.
+
+---
+
+### Service with `@Validated`
+
+```java
+@Service
+@Validated
+public class PaymentService {
+
+    public void pay(@Min(1) int amount) {
+        System.out.println("Paying " + amount);
+    }
+}
+```
+
+### Call it
+
+```java
+paymentService.pay(0);
+```
+
+### What happens
+
+❌ Method body is **NOT executed**
+❌ Exception is thrown immediately:
+
+```
+ConstraintViolationException:
+pay.amount: must be greater than or equal to 1
+```
+
+That is **`@Validated` in action**.
+
+---
+
+# 6️⃣ Why `@Valid` cannot replace `@Validated`
+
+Try this:
+
+```java
+@Service
+public class PaymentService {
+
+    public void pay(@Valid @Min(1) int amount) {
+    }
+}
+```
+
+❌ Still no validation
+❌ Still ignored
+
+Why?
+
+Because:
+
+* `@Valid` → marks *what* to validate
+* `@Validated` → tells Spring *when* to validate
+
+You need **both roles**, but only `@Validated` triggers method validation.
+
+---
+
+# 7️⃣ Validation Groups (the second purpose of @Validated)
+
+`@Validated` also supports **groups**, which `@Valid` does not.
+
+### Example
+
+```java
+public interface Create {}
+public interface Update {}
+
+public class UserDto {
+
+    @NotNull(groups = Update.class)
+    private Long id;
+
+    @NotBlank(groups = {Create.class, Update.class})
+    private String name;
+}
+```
+
+### Use group validation
+
+```java
+@PostMapping("/users")
+public void create(@Validated(Create.class) @RequestBody UserDto dto) {
+}
+```
+
+Here:
+
+* `id` is NOT required
+* `name` IS required
+
+This is **impossible with `@Valid`**.
+
+---
+
+# 8️⃣ Summary table (memorize this)
+
+| Situation                          | Use                      |
+| ---------------------------------- | ------------------------ |
+| Validate REST request body         | `@Valid`                 |
+| Validate nested DTOs               | `@Valid`                 |
+| Validate service method parameters | `@Validated`             |
+| Validate return values             | `@Validated`             |
+| Validation groups                  | `@Validated`             |
+| Simple field constraints           | `@NotNull`, `@Size`, etc |
+
+---
+
+# 9️⃣ One-sentence mental model
+
+> **`@Valid` describes what should be validated**
+> **`@Validated` tells Spring to actually do validation on method calls**
+
+---
+
+If you want, next we can:
+
+* Draw a **flow diagram** (Controller → Service → Validation)
+* Compare **DTO validation vs domain validation**
+* Show **real production patterns** (where to put what)
+
+Just tell me 👍
+
+------------------------
+
+Great question 👍
+This is exactly where Bean Validation **starts to make sense**.
+
+Below are **real production-style patterns** that teams actually use in Spring projects, especially in **layered architectures** (Controller → Service → Domain).
+
+I’ll show:
+
+1. **Where validation lives**
+2. **Why it lives there**
+3. **What annotations are used**
+
+No theory — only patterns you’d see in a real codebase.
+
+---
+
+# 🧱 Typical Production Layers
+
+```
+Controller  →  Service  →  Domain
+(HTTP)         (Use cases)   (Business rules)
+```
+
+Each layer has **different validation responsibilities**.
+
+---
+
+## 🟢 Pattern 1: Controller / API validation (DTO level)
+
+### Purpose
+
+✔ Protect your API
+✔ Validate **user input shape**
+✔ Return **400 Bad Request**
+
+### What goes here
+
+* Required fields
+* Length
+* Format (email, phone)
+* JSON correctness
+
+### Annotations used
+
+* `@Valid`
+* Built-in constraints
+
+---
+
+### Example
+
+```java
+public class CreateUserRequest {
+
+    @NotBlank
+    private String username;
+
+    @Email
+    private String email;
+
+    @Min(18)
+    private int age;
+}
+```
+
+```java
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    @PostMapping
+    public void create(@Valid @RequestBody CreateUserRequest request) {
+        userService.createUser(request);
+    }
+}
+```
+
+### Why this is correct
+
+* Input is **untrusted**
+* Failure = **HTTP 400**
+* Validation happens **before business logic**
+
+❌ Do NOT put business rules here
+(e.g. “user already exists”)
+
+---
+
+## 🟡 Pattern 2: Service-layer validation (Use-case rules)
+
+### Purpose
+
+✔ Enforce **business rules**
+✔ Protect service from **invalid calls**
+✔ Validate method parameters **even outside HTTP**
+
+### This is where `@Validated` belongs
+
+---
+
+### Example
+
+```java
+@Service
+@Validated
+public class UserService {
+
+    public void createUser(
+        @NotNull CreateUserRequest request
+    ) {
+        // business logic
+    }
+}
+```
+
+But more importantly:
+
+```java
+@Service
+@Validated
+public class TransferService {
+
+    public void transfer(
+        @NotNull Long fromAccount,
+        @NotNull Long toAccount,
+        @Positive BigDecimal amount
+    ) {
+        // domain logic
+    }
+}
+```
+
+### What this protects you from
+
+* Controller bugs
+* Scheduler calls
+* Event listeners
+* Tests calling service directly
+
+This is **critical in production**.
+
+---
+
+### What happens on violation?
+
+```java
+transfer(null, 5L, BigDecimal.TEN);
+```
+
+➡ `ConstraintViolationException`
+➡ Method body never runs
+➡ Transaction never opens
+
+✔ Safe by default
+
+---
+
+## 🔵 Pattern 3: Domain-level invariants (Entity rules)
+
+### Purpose
+
+✔ Protect **core business invariants**
+✔ Ensure invalid domain objects **cannot exist**
+
+### What goes here
+
+* Rules that must **always be true**
+* Independent of API / transport
+
+---
+
+### Example: JPA Entity
+
+```java
+@Entity
+public class Account {
+
+    @Id
+    private Long id;
+
+    @Positive
+    private BigDecimal balance;
+
+    public void withdraw(@Positive BigDecimal amount) {
+        if (balance.compareTo(amount) < 0) {
+            throw new InsufficientFundsException();
+        }
+        balance = balance.subtract(amount);
+    }
+}
+```
+
+### Important rule
+
+> **Domain objects must be valid even without Spring**
+
+So:
+
+* Don’t rely only on annotations
+* Use **constructor checks** and **methods**
+
+---
+
+## 🔴 Pattern 4: Validation Groups (Create vs Update)
+
+### Real production problem
+
+Same DTO:
+
+* Create → no ID
+* Update → ID required
+
+---
+
+### Solution: Groups
+
+```java
+public interface Create {}
+public interface Update {}
+```
+
+```java
+public class UserDto {
+
+    @NotNull(groups = Update.class)
+    private Long id;
+
+    @NotBlank(groups = {Create.class, Update.class})
+    private String name;
+}
+```
+
+### Controller
+
+```java
+@PostMapping
+public void create(@Validated(Create.class) @RequestBody UserDto dto) {
+}
+```
+
+```java
+@PutMapping
+public void update(@Validated(Update.class) @RequestBody UserDto dto) {
+}
+```
+
+✔ Clean
+✔ No duplicate DTOs
+✔ Widely used in enterprise apps
+
+---
+
+## 🟣 Pattern 5: Custom business constraint (real example)
+
+### Requirement
+
+> “Username must be unique”
+
+This is **NOT** a controller concern.
+
+---
+
+### Custom constraint
+
+```java
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy = UniqueUsernameValidator.class)
+public @interface UniqueUsername {
+    String message() default "Username already exists";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+```
+
+```java
+@Component
+public class UniqueUsernameValidator
+        implements ConstraintValidator<UniqueUsername, String> {
+
+    private final UserRepository repository;
+
+    public UniqueUsernameValidator(UserRepository repository) {
+        this.repository = repository;
+    }
+
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        return value != null && !repository.existsByUsername(value);
+    }
+}
+```
+
+### Usage (DTO or Service)
+
+```java
+public class CreateUserRequest {
+
+    @NotBlank
+    @UniqueUsername
+    private String username;
+}
+```
+
+This is **very common in real systems**.
+
+---
+
+## 🟠 Pattern 6: Exception handling (production style)
+
+### Global handler
+
+```java
+@RestControllerAdvice
+public class ValidationExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleDtoErrors(MethodArgumentNotValidException ex) {
+        return ResponseEntity.badRequest().body("Invalid request");
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<?> handleServiceErrors(ConstraintViolationException ex) {
+        return ResponseEntity.badRequest().body("Invalid parameters");
+    }
+}
+```
+
+---
+
+## 🧠 Production Rules of Thumb (very important)
+
+### ✅ DO
+
+✔ `@Valid` → Controllers
+✔ `@Validated` → Services
+✔ Domain rules → Domain objects
+✔ Groups → Create / Update flows
+✔ Method validation → Protect services
+
+### ❌ DON’T
+
+❌ Put `@Validated` everywhere
+❌ Validate business rules in controllers
+❌ Rely only on annotations for domain invariants
+❌ Skip service validation “because controller already validated”
+
+---
+
+## 🧩 Final mental model
+
+```
+Controller:  Is the request valid?
+Service:     Is this operation allowed?
+Domain:      Can this object exist?
+```
+
+Each layer validates **different things**.
+
+---
+
+If you want next, I can:
+
+* Show **transaction + validation ordering**
+* Compare **Spring vs Hibernate Validator behavior**
+* Show **testing patterns** for validation
+* Show **how Netflix / Uber-style services structure this**
+
+Just tell me which one 👌
+
+--------------------------
+
+Perfect — this is where everything clicks.
+Below is a **Netflix / Uber–style validation structure**, simplified but **architecturally accurate**, the way large-scale backend teams actually do it.
+
+I’ll show:
+
+* **Layered structure**
+* **Who validates what**
+* **Why it scales**
+* **A full end-to-end example**
+
+No shortcuts, no toy example.
+
+---
+
+# 🏗 Netflix / Uber–style Validation Architecture
+
+### High-level structure
+
+```
+API Layer (Edge)
+   ↓
+Application / Use Case Layer
+   ↓
+Domain Layer
+   ↓
+Infrastructure
+```
+
+Validation is **distributed**, not centralized.
+
+---
+
+## 🔷 Layer 1: API (Edge) Layer
+
+> “Is the request well-formed?”
+
+### Characteristics
+
+* Stateless
+* Fast failure
+* User-facing errors (HTTP 400)
+* No business decisions
+
+### Tools
+
+* `@Valid`
+* Simple constraints
+* Request DTOs only
+
+---
+
+### Example: API DTO
+
+```java
+public class CreateRideRequest {
+
+    @NotNull
+    private Long riderId;
+
+    @NotNull
+    private Long pickupLocationId;
+
+    @NotNull
+    private Long dropoffLocationId;
+}
+```
+
+```java
+@RestController
+@RequestMapping("/rides")
+public class RideController {
+
+    private final RideApplicationService rideService;
+
+    public RideController(RideApplicationService rideService) {
+        this.rideService = rideService;
+    }
+
+    @PostMapping
+    public RideResponse createRide(
+            @Valid @RequestBody CreateRideRequest request) {
+
+        return rideService.createRide(
+            request.getRiderId(),
+            request.getPickupLocationId(),
+            request.getDropoffLocationId()
+        );
+    }
+}
+```
+
+### Why Netflix/Uber do this
+
+* Edge services may be **called by mobile apps, partners, or other services**
+* Invalid JSON must die **immediately**
+* No DB calls here
+
+---
+
+## 🔷 Layer 2: Application / Use-Case Layer
+
+> “Is this operation allowed?”
+
+This layer is **key** in Netflix/Uber systems.
+
+### Characteristics
+
+* Orchestrates domain logic
+* Transaction boundaries
+* **Method validation lives here**
+* Independent of HTTP
+
+### Tools
+
+* `@Validated`
+* Method-level constraints
+* Business-level preconditions
+
+---
+
+### Example: Application Service
+
+```java
+@Service
+@Validated
+public class RideApplicationService {
+
+    private final RiderRepository riderRepository;
+    private final RideDomainService rideDomainService;
+
+    public RideApplicationService(
+            RiderRepository riderRepository,
+            RideDomainService rideDomainService) {
+        this.riderRepository = riderRepository;
+        this.rideDomainService = rideDomainService;
+    }
+
+    public RideResponse createRide(
+            @NotNull Long riderId,
+            @NotNull Long pickupLocationId,
+            @NotNull Long dropoffLocationId) {
+
+        Rider rider = riderRepository.findById(riderId)
+                .orElseThrow(() -> new RiderNotFoundException());
+
+        rideDomainService.validateRiderEligibility(rider);
+
+        Ride ride = rideDomainService.createRide(
+                rider, pickupLocationId, dropoffLocationId);
+
+        return RideResponse.from(ride);
+    }
+}
+```
+
+### Why this matters at scale
+
+* This service can be called by:
+
+    * REST controller
+    * Kafka consumer
+    * Scheduled job
+    * Another microservice
+
+➡ **Validation must live here, not only at the edge**
+
+---
+
+## 🔷 Layer 3: Domain Layer
+
+> “Can this business object exist?”
+
+### Characteristics
+
+* Pure Java
+* No Spring annotations required
+* Enforces invariants
+* Throws **domain exceptions**
+
+---
+
+### Example: Domain Model
+
+```java
+public class Ride {
+
+    private final Long riderId;
+    private RideStatus status;
+
+    public Ride(Long riderId) {
+        if (riderId == null) {
+            throw new IllegalArgumentException("riderId required");
+        }
+        this.riderId = riderId;
+        this.status = RideStatus.REQUESTED;
+    }
+
+    public void start() {
+        if (status != RideStatus.REQUESTED) {
+            throw new InvalidRideStateException();
+        }
+        status = RideStatus.STARTED;
+    }
+}
+```
+
+### Domain Service
+
+```java
+public class RideDomainService {
+
+    public void validateRiderEligibility(Rider rider) {
+        if (!rider.isActive()) {
+            throw new RiderBlockedException();
+        }
+    }
+
+    public Ride createRide(
+            Rider rider,
+            Long pickupLocationId,
+            Long dropoffLocationId) {
+
+        if (pickupLocationId.equals(dropoffLocationId)) {
+            throw new InvalidRouteException();
+        }
+
+        return new Ride(rider.getId());
+    }
+}
+```
+
+### Why Netflix/Uber do this
+
+* Domain logic is **portable**
+* Can be reused in:
+
+    * Batch jobs
+    * Offline simulations
+    * Different services
+
+---
+
+## 🔷 Layer 4: Infrastructure Validation (DB / External)
+
+### Example
+
+* Unique constraints
+* Foreign keys
+* Optimistic locking
+
+```sql
+ALTER TABLE rides
+ADD CONSTRAINT unique_active_ride
+UNIQUE (rider_id)
+WHERE status IN ('REQUESTED', 'STARTED');
+```
+
+➡ **Final safety net**, never primary validation.
+
+---
+
+## 🔴 Validation Flow (Very Important)
+
+```
+Request →
+  API DTO validation (@Valid)
+    →
+  Method validation (@Validated)
+    →
+  Domain invariant checks
+    →
+  DB constraints
+```
+
+Each layer assumes **previous layers may fail**.
+
+---
+
+## 🧨 Exception Mapping (Netflix-style)
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<?> handleApiValidation() {
+        return ResponseEntity.badRequest().body("Invalid request");
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<?> handleServiceValidation() {
+        return ResponseEntity.badRequest().body("Invalid parameters");
+    }
+
+    @ExceptionHandler(DomainException.class)
+    ResponseEntity<?> handleDomainError(DomainException ex) {
+        return ResponseEntity.unprocessableEntity().body(ex.getMessage());
+    }
+}
+```
+
+* **400** → malformed input
+* **422** → valid input, invalid business rule
+* **500** → system failure
+
+This distinction is **very important at scale**.
+
+---
+
+## 🧠 Why this scales (Netflix/Uber mindset)
+
+### Key principles
+
+✔ Validation close to responsibility
+✔ No duplicated checks
+✔ Services are safe to call internally
+✔ Domain logic independent of frameworks
+✔ Clear error semantics
+
+---
+
+## 📌 Final takeaway
+
+> **`@Valid` = edge protection**
+> **`@Validated` = service safety**
+> **Domain checks = business truth**
+
+This structure allows:
+
+* Hundreds of services
+* Thousands of developers
+* Millions of requests per second
+
+---
+
+If you want next, I can:
+
+* Show **Kafka / async validation patterns**
+* Show **CQRS validation split**
+* Show **transaction + validation ordering**
+* Show **how this looks in tests**
+
+
+--------------
+
+```java
+Foo target = new Foo();
+DataBinder binder = new DataBinder(target);
+binder.setValidator(new FooValidator());
+
+// bind to the target object
+binder.bind(propertyValues);
+
+// validate the target object
+binder.validate();
+
+// get BindingResult that includes any validation errors
+BindingResult results = binder.getBindingResult();
+```
 
 ## Bean Lifecycle
 
