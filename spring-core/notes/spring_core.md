@@ -2114,16 +2114,15 @@ Resorce:    Injection must be resolved by name first.
 | 3️⃣  | If multiple → ❌ **Fails** (no disambiguation)                     |
 | 4️⃣  | Special case: resolves framework types (ApplicationContext, etc.) |
 
-
 ➜ Why primary does not override @Resource name resolution?
 
-Because per JSR-250 standards, name has priority — Primary is a Spring-only feature, and Spring must honor the standard first.
+Because per JSR-250 standards, name has priority — Primary is a Spring-only feature, and Spring must honor the standard
+first.
 
 Primary only matters if type resolution happens, not when name resolves a match.
 
-
 | Feature                       | `@Resource`                       | `@Autowired`                |
-| ----------------------------- | --------------------------------- | --------------------------- |
+|-------------------------------|-----------------------------------|-----------------------------|
 | Standard                      | ✔ JSR-250                         | ❌ Spring-only               |
 | Resolution priority           | **Name → Type**                   | **Type → Qualifier → Name** |
 | Respects `@Primary`           | Only if type fallback occurs      | ✔ Yes                       |
@@ -2132,12 +2131,11 @@ Primary only matters if type resolution happens, not when name resolves a match.
 | Required option               | ❌ No `required=false`             | ✔ Has `required=false`      |
 | Constructor injection         | ❌ Not intended                    | ✔ Fully supported           |
 | Works well for                | Simple cases                      | Complex dependency wiring   |
-
 
 🆚 @Resource vs @Autowired + @Qualifier:
 
 | Feature                       | `@Resource`                       | `@Autowired`                |
-| ----------------------------- | --------------------------------- | --------------------------- |
+|-------------------------------|-----------------------------------|-----------------------------|
 | Standard                      | ✔ JSR-250                         | ❌ Spring-only               |
 | Resolution priority           | **Name → Type**                   | **Type → Qualifier → Name** |
 | Respects `@Primary`           | Only if type fallback occurs      | ✔ Yes                       |
@@ -2147,7 +2145,8 @@ Primary only matters if type resolution happens, not when name resolves a match.
 | Constructor injection         | ❌ Not intended                    | ✔ Fully supported           |
 | Works well for                | Simple cases                      | Complex dependency wiring   |
 
-See [SpringCoreResourceAutowiredDemo.java](../src/main/java/org/example/springcore/SpringCoreResourceAutowiredDemo.java) for example.
+See [SpringCoreResourceAutowiredDemo.java](../src/main/java/org/example/springcore/SpringCoreResourceAutowiredDemo.java)
+for example.
 
 ---
 Using @Value
@@ -2156,20 +2155,23 @@ Using @Value
 @Value is used to inject externalized properties.
 
 ```java
+
 @Component
 public class MovieRecommender {
 
-	private final String catalog;
+    private final String catalog;
 
-	public MovieRecommender(@Value("${catalog.name}") String catalog) {
-		this.catalog = catalog;
-	}
+    public MovieRecommender(@Value("${catalog.name}") String catalog) {
+        this.catalog = catalog;
+    }
 }
 ```
 
-Add @PropertySource("classpath:application.properties") annotation to the @Configuration class to load properties from resources.
+Add @PropertySource("classpath:application.properties") annotation to the @Configuration class to load properties from
+resources.
 
-PropertySourcesPlaceholderConfigurer - for resolving missing properties. (if not provided and variable is missing the value will be set to ${catalog.name})
+PropertySourcesPlaceholderConfigurer - for resolving missing properties. (if not provided and variable is missing the
+value will be set to ${catalog.name})
 
 ```note 
 When configuring a PropertySourcesPlaceholderConfigurer using JavaConfig, the @Bean method must be static.
@@ -2183,25 +2185,27 @@ before other regular beans are fully initialized.
 Spring Boot configures by default a PropertySourcesPlaceholderConfigurer bean that will get properties from application.properties and application.yml files.
 ```
 
-A Spring BeanPostProcessor uses a ConversionService behind the scenes to handle the process for converting the String value in @Value to the target type.
+A Spring BeanPostProcessor uses a ConversionService behind the scenes to handle the process for converting the String
+value in @Value to the target type.
 You can override the default ConversionService by specifying a custom ConversionService in the @Bean method.
 
 ```java
+
 @Configuration
 public class AppConfig {
 
-	@Bean
-	public ConversionService conversionService() {
-		DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
-		conversionService.addConverter(new MyCustomConverter());
-		return conversionService;
-	}
+    @Bean
+    public ConversionService conversionService() {
+        DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
+        conversionService.addConverter(new MyCustomConverter());
+        return conversionService;
+    }
 }
 ```
 
-@Value also parses SpEL's  expressions runtime.
+@Value also parses SpEL's expressions runtime.
 
-For example: 
+For example:
 [MovieRecommender.java](../src/main/java/org/example/springcore/component/MovieRecommender.java),
 [SpringCoreResourceAutowiredDemo.java](../src/main/java/org/example/springcore/SpringCoreResourceAutowiredDemo.java)
 
@@ -2209,7 +2213,8 @@ For example:
 Using @PostConstruct and @PreDestroy (jakarta.annotation.(PostConstruct, PreDestroy))
 ---
 
-CommonAnnotationBeanPostProcessor - recognizes @PostConstruct and @PreDestroy annotations and registers the lifecycle methods with the BeanFactory.
+CommonAnnotationBeanPostProcessor - recognizes @PostConstruct and @PreDestroy annotations and registers the lifecycle
+methods with the BeanFactory.
 
 ```note
 Like @Resource, the @PostConstruct and @PreDestroy annotation types were a part of the standard Java libraries from JDK 6 to 8.
@@ -2227,8 +2232,8 @@ for Lifecycle methods flow.
 Classpath Scanning and Managed Components
 ---
 
-Stereotype Annotations: 
-    
+Stereotype Annotations:
+
     **  @Component - generic
     **  @Service - service
     **  @Controller - presentation layer
@@ -2236,47 +2241,50 @@ Stereotype Annotations:
 
 #### Using Meta-annotations and Composed Annotations
 
-You can combine annotations and create composed Annotations. For example 
+You can combine annotations and create composed Annotations. For example
 @RestController is a Composed annotation (@Controller + @ResponseBody)
 
 ```java
+
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Component /*meta-annotation*/
 public @interface Service /*composed annotation*/ {
 
-	// ...
+    // ...
 }
 ```
 
-Composed annotations can redeclare attributes: 
+Composed annotations can redeclare attributes:
 
 ```java
+
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Scope(WebApplicationContext.SCOPE_SESSION) /* hardcodes value */
 public @interface SessionScope {
 
-	/**
-	 * Alias for {@link Scope#proxyMode}.
-	 * <p>Defaults to {@link ScopedProxyMode#TARGET_CLASS}.
-	 */
-	@AliasFor(annotation = Scope.class)
-	ScopedProxyMode proxyMode() default ScopedProxyMode.TARGET_CLASS;
+    /**
+     * Alias for {@link Scope#proxyMode}.
+     * <p>Defaults to {@link ScopedProxyMode#TARGET_CLASS}.
+     */
+    @AliasFor(annotation = Scope.class)
+    ScopedProxyMode proxyMode() default ScopedProxyMode.TARGET_CLASS;
 
 }
 ```
 
-You can let proxyMode to default(ScopedProxyMode.TARGET_CLASS) or set manually: 
+You can let proxyMode to default(ScopedProxyMode.TARGET_CLASS) or set manually:
 
 ```java
+
 @Service
 @SessionScope
 /*proxyMode = ScopedProxyMode.TARGET_CLASS*/
 public class SessionScopedService {
-	// ...
+    // ...
 }
 
 @Service
@@ -2294,10 +2302,11 @@ you need to add @ComponentScan to your @Configuration class,
 where the basePackages attribute is configured with a common parent package for the two classes.
 
 ```java
+
 @Configuration
 @ComponentScan(basePackages = "org.example")
-public class AppConfig  {
-	// ...
+public class AppConfig {
+    // ...
 }
 ```
 
@@ -2306,16 +2315,18 @@ The use of <context:component-scan> implicitly enables the functionality of <con
 There is usually no need to include the <context:annotation-config> element when using <context:component-scan>
 ```
 
-The AutowiredAnnotationBeanPostProcessor and CommonAnnotationBeanPostProcessor are both implicitly included when you use the <context:component-scan> element.
-That means that the two components are autodetected and wired together — all without any bean configuration metadata provided in XML.
-
+The AutowiredAnnotationBeanPostProcessor and CommonAnnotationBeanPostProcessor are both implicitly included when you use
+the <context:component-scan> element.
+That means that the two components are autodetected and wired together — all without any bean configuration metadata
+provided in XML.
 
 ```java
+
 @Configuration
 /*property placeholder from environment*/
 @ComponentScan("${app.scan.packages}")
 public class AppConfig {
-	// ...
+    // ...
 }
 ```
 
@@ -2326,20 +2337,22 @@ app.scan.packages=org.example.config, org.example.service.**
 #### Filtering component scan beans (exclude/include)
 
 ```java
+
 @Configuration
 @ComponentScan(basePackages = "org.example",
-		includeFilters = @Filter(type = FilterType.REGEX, pattern = ".*Stub.*Repository"),
-		excludeFilters = @Filter(Repository.class))
+        includeFilters = @Filter(type = FilterType.REGEX, pattern = ".*Stub.*Repository"),
+        excludeFilters = @Filter(Repository.class))
 public class AppConfig {
-	// ...
+    // ...
 }
 ```
 
 ```java
+
 @Service("myMovieLister")
 /*bean name: myMovieLister*/
 public class SimpleMovieLister {
-	// ...
+    // ...
 }
 
 
@@ -2349,13 +2362,15 @@ public class MovieFinderImpl implements MovieFinder {
     // ...
 }
 ```
-You can implement your own BeanGenerator to override name assignment: 
+
+You can implement your own BeanGenerator to override name assignment:
 
 ```java
+
 @Configuration
 @ComponentScan(basePackages = "org.example", nameGenerator = MyNameGenerator.class)
 public class AppConfig {
-	// ...
+    // ...
 }
 ```
 
@@ -2392,7 +2407,8 @@ its bean name is generated by the BeanNameGenerator strategy known to that scann
 
 ---
 
-Great topic — this is an area where Spring behavior *changes significantly* depending on **where** and **how** you declare `@Bean`.
+Great topic — this is an area where Spring behavior *changes significantly* depending on **where** and **how** you
+declare `@Bean`.
 
 Below is the **full comparison**:
 
@@ -2401,6 +2417,7 @@ Below is the **full comparison**:
 ## ✅ 1️⃣ `@Bean` inside a **class annotated with `@Configuration`**
 
 ```java
+
 @Configuration
 public class AppConfig {
 
@@ -2414,7 +2431,7 @@ public class AppConfig {
 ### ✔ What happens
 
 | Behavior                             | Result                                            |
-| ------------------------------------ | ------------------------------------------------- |
+|--------------------------------------|---------------------------------------------------|
 | Full **CGLIB proxying**              | The config class is proxied                       |
 | **Singleton enforcement**            | Multiple calls return same bean                   |
 | **Bean inter-calls are intercepted** | Calls to other @Bean methods return managed beans |
@@ -2422,8 +2439,11 @@ public class AppConfig {
 Example:
 
 ```java
+
 @Bean
-public A a() { return new A(b()); }  // b() returns the SPRING bean, not `new B()`
+public A a() {
+    return new A(b());
+}  // b() returns the SPRING bean, not `new B()`
 ```
 
 ➡ **This is the recommended and “real” Spring Java config style.**
@@ -2433,6 +2453,7 @@ public A a() { return new A(b()); }  // b() returns the SPRING bean, not `new B(
 ## ⚠ 2️⃣ `@Bean` inside any `@Component` / `@Service` / `@Repository` (NOT `@Configuration`)
 
 ```java
+
 @Component
 public class SomeComponent {
 
@@ -2446,7 +2467,7 @@ public class SomeComponent {
 ### ❗Key differences
 
 | Behavior                                                                 | Result                                 |
-| ------------------------------------------------------------------------ | -------------------------------------- |
+|--------------------------------------------------------------------------|----------------------------------------|
 | No CGLIB proxying                                                        | No enhancement                         |
 | **Every method call creates a new instance**                             | Could break singleton                  |
 | @Bean factory methods are **just called normally** inside the same class | Internal calls are **not intercepted** |
@@ -2454,8 +2475,11 @@ public class SomeComponent {
 Example:
 
 ```java
+
 @Bean
-public A a() { return new A(b()); }  // b() creates NEW B(), not the Spring bean
+public A a() {
+    return new A(b());
+}  // b() creates NEW B(), not the Spring bean
 ```
 
 ✔ Spring still registers the bean
@@ -2468,18 +2492,21 @@ public A a() { return new A(b()); }  // b() creates NEW B(), not the Spring bean
 ## 🔹 3️⃣ `@Bean` with **static** method
 
 ```java
+
 @Configuration
 public class StaticConfig {
 
     @Bean
-    public static MyStaticBean myBean() { return new MyStaticBean(); }
+    public static MyStaticBean myBean() {
+        return new MyStaticBean();
+    }
 }
 ```
 
 ### Behavior
 
 | Behavior                                                                | Result                                      |
-| ----------------------------------------------------------------------- | ------------------------------------------- |
+|-------------------------------------------------------------------------|---------------------------------------------|
 | Bean created **before** configuration class is instantiated             | No need for proxy                           |
 | Used for **BeanFactoryPostProcessors** / **early infrastructure beans** | e.g. `PropertySourcesPlaceholderConfigurer` |
 | Cannot call other non-static @Beans                                     | No Spring lifecycle access                  |
@@ -2491,7 +2518,7 @@ public class StaticConfig {
 ## 🔍 Short comparison table
 
 | Feature / Behavior           | `@Bean` in `@Configuration` | `@Bean` in `@Component` | static `@Bean`               |
-| ---------------------------- | --------------------------- | ----------------------- | ---------------------------- |
+|------------------------------|-----------------------------|-------------------------|------------------------------|
 | Singleton enforced           | ✅ Yes                       | ❌ Not guaranteed        | ❌ Not via proxy              |
 | Internal method interception | ✅ Yes                       | ❌ No                    | ❌ No                         |
 | Config class proxied         | ✅ Yes                       | ❌ No                    | ❌ No                         |
@@ -2503,7 +2530,7 @@ public class StaticConfig {
 ## 📌 Practical Guidelines
 
 | Use this when                                                              | Recommendation                            |
-| -------------------------------------------------------------------------- | ----------------------------------------- |
+|----------------------------------------------------------------------------|-------------------------------------------|
 | Creating normal app beans (services, clients, data source, mapper)         | ➜ Put `@Bean` inside `@Configuration`     |
 | You already have a component and need to expose an additional bean         | ➜ `@Component` with @Bean (not preferred) |
 | Creating `BeanFactoryPostProcessor`, `BeanDefinitionRegistryPostProcessor` | ➜ Use **static** @Bean                    |
@@ -2513,21 +2540,36 @@ public class StaticConfig {
 ## 🧪 Simple Demo — Why proxying matters
 
 ```java
+
 @Configuration
 class Config {
-    @Bean A a() { return new A(b()); }
-    @Bean B b() { return new B(); }
+    @Bean
+    A a() {
+        return new A(b());
+    }
+
+    @Bean
+    B b() {
+        return new B();
+    }
 }
 
 @Component
 class BadConfig {
-    @Bean A a() { return new A(b()); }
-    @Bean B b() { return new B(); }
+    @Bean
+    A a() {
+        return new A(b());
+    }
+
+    @Bean
+    B b() {
+        return new B();
+    }
 }
 ```
 
 | Call                         | Result in `@Configuration` | Result in `@Component` |
-| ---------------------------- | -------------------------- | ---------------------- |
+|------------------------------|----------------------------|------------------------|
 | `a()` internally calls `b()` | Spring-managed singleton B | New B() each time      |
 
 ➡ **Your A’s dependency changes instance → bugs**
@@ -2537,7 +2579,7 @@ class BadConfig {
 ## 🧠 Summary
 
 | Choose…                 | When                                                 |
-| ----------------------- | ---------------------------------------------------- |
+|-------------------------|------------------------------------------------------|
 | `@Configuration`        | Always for proper Spring-managed beans (recommended) |
 | static @Bean            | Early infrastructure beans                           |
 | @Bean inside @Component | Only if no other choice — avoid                      |
@@ -2546,29 +2588,30 @@ class BadConfig {
 JakartaAnnotations
 ---
 
-####    Dependency Injection with @Inject and @Named
+#### Dependency Injection with @Inject and @Named
 
 Inject instead of Autowired
+
 ```java
 import jakarta.inject.Inject;
 
 public class SimpleMovieLister {
 
-	private MovieFinder movieFinder;
+    private MovieFinder movieFinder;
 
-	@Inject
-	public void setMovieFinder(@Named("main") MovieFinder movieFinder) {
-		this.movieFinder = movieFinder;
-	}
+    @Inject
+    public void setMovieFinder(@Named("main") MovieFinder movieFinder) {
+        this.movieFinder = movieFinder;
+    }
 
-	public void listMovies() {
-		this.movieFinder.findMovies(...);
-		// ...
-	}
+    public void listMovies() {
+        this.movieFinder.findMovies(...);
+        // ...
+    }
 }
 ```
 
-You can also use Provider<T>, to escape bean not-defined: 
+You can also use Provider<T>, to escape bean not-defined:
 
 ```java
 import jakarta.inject.Inject;
@@ -2576,17 +2619,17 @@ import jakarta.inject.Provider;
 
 public class SimpleMovieLister {
 
-	private Provider<MovieFinder> movieFinder;
+    private Provider<MovieFinder> movieFinder;
 
-	@Inject
-	public void setMovieFinder(Provider<MovieFinder> movieFinder) {
-		this.movieFinder = movieFinder;
-	}
+    @Inject
+    public void setMovieFinder(Provider<MovieFinder> movieFinder) {
+        this.movieFinder = movieFinder;
+    }
 
-	public void listMovies() {
-		this.movieFinder.get().findMovies(...);
-		// ...
-	}
+    public void listMovies() {
+        this.movieFinder.get().findMovies(...);
+        // ...
+    }
 }
 ```
 
@@ -2604,14 +2647,14 @@ import jakarta.inject.Named;
 @Named("movieListener")  // @ManagedBean("movieListener") could be used as well
 public class SimpleMovieLister {
 
-	private MovieFinder movieFinder;
+    private MovieFinder movieFinder;
 
-	@Inject
-	public void setMovieFinder(MovieFinder movieFinder) {
-		this.movieFinder = movieFinder;
-	}
+    @Inject
+    public void setMovieFinder(MovieFinder movieFinder) {
+        this.movieFinder = movieFinder;
+    }
 
-	// ...
+    // ...
 }
 ```
 
@@ -2624,12 +2667,12 @@ in the exact same way as when you use Spring annotations.
 
 ## Java-based Container Configuration
 
-
 ##### The @Bean annotation is used to indicate that a method instantiates, configures, and initializes a new object to be managed by the Spring IoC container.
 
 ##### Annotating a class with @Configuration indicates that its primary purpose is as a source of bean definitions.
-Furthermore, @Configuration classes let inter-bean dependencies be defined by calling other @Bean methods in the same class.
 
+Furthermore, @Configuration classes let inter-bean dependencies be defined by calling other @Bean methods in the same
+class.
 
 ## 🚦 The Context Split in Spring MVC
 
@@ -2980,16 +3023,18 @@ can be optionally overridden via dependency injection.
 Instantiating the Spring Container by Using AnnotationConfigApplicationContext
 ----
 
-When @Configuration classes are provided as input, the @Configuration class itself is registered as a bean definition and all declared @Bean methods within the class are also registered as bean definitions.
+When @Configuration classes are provided as input, the @Configuration class itself is registered as a bean definition
+and all declared @Bean methods within the class are also registered as bean definitions.
 
-AnnotationConfigApplicationContext is not limited to working only with @Configuration classes. Any @Component or JSR-330 annotated class may be supplied as input to the constructor,
+AnnotationConfigApplicationContext is not limited to working only with @Configuration classes. Any @Component or JSR-330
+annotated class may be supplied as input to the constructor,
 as the following example shows:
 
 ```java
 public static void main(String[] args) {
-	ApplicationContext ctx = new AnnotationConfigApplicationContext(MyServiceImpl.class, Dependency1.class, Dependency2.class);
-	MyService myService = ctx.getBean(MyService.class);
-	myService.doStuff();
+    ApplicationContext ctx = new AnnotationConfigApplicationContext(MyServiceImpl.class, Dependency1.class, Dependency2.class);
+    MyService myService = ctx.getBean(MyService.class);
+    myService.doStuff();
 }
 ```
 
@@ -3008,7 +3053,7 @@ public static void main(String[] args) {
 
 @ComponentScan(basePackages = "com.acme") - enable Component scanning for a given base package(and its subpackages)
 
-You can also scan through application context: 
+You can also scan through application context:
 
 ```java 
 public static void main(String[] args) {
@@ -3089,41 +3134,45 @@ Using the @Bean Annotation
 You can use the @Bean annotation in a @Configuration-annotated or in a @Component-annotated class.
 
 #### Receiving Lifecycle Callbacks
-Any classes defined with the @Bean annotation support the regular lifecycle callbacks and can use the @PostConstruct and @PreDestroy annotations from JSR-250.
+
+Any classes defined with the @Bean annotation support the regular lifecycle callbacks and can use the @PostConstruct and
+@PreDestroy annotations from JSR-250.
 See JSR-250 annotations for further details.
 
-The regular Spring lifecycle callbacks are fully supported as well. If a bean implements InitializingBean, DisposableBean, or Lifecycle,
+The regular Spring lifecycle callbacks are fully supported as well. If a bean implements InitializingBean,
+DisposableBean, or Lifecycle,
 their respective methods are called by the container.
 
-The standard set of *Aware interfaces (such as BeanFactoryAware, BeanNameAware, MessageSourceAware, ApplicationContextAware, and so on) are also fully supported.
+The standard set of *Aware interfaces (such as BeanFactoryAware, BeanNameAware, MessageSourceAware,
+ApplicationContextAware, and so on) are also fully supported.
 
 ```java
 public class BeanOne {
 
-	public void init() {
-		// initialization logic
-	}
+    public void init() {
+        // initialization logic
+    }
 }
 
 public class BeanTwo {
 
-	public void cleanup() {
-		// destruction logic
-	}
+    public void cleanup() {
+        // destruction logic
+    }
 }
 
 @Configuration
 public class AppConfig {
 
-	@Bean(initMethod = "init")
-	public BeanOne beanOne() {
-		return new BeanOne();
-	}
+    @Bean(initMethod = "init")
+    public BeanOne beanOne() {
+        return new BeanOne();
+    }
 
-	@Bean(destroyMethod = "cleanup")
-	public BeanTwo beanTwo() {
-		return new BeanTwo();
-	}
+    @Bean(destroyMethod = "cleanup")
+    public BeanTwo beanTwo() {
+        return new BeanTwo();
+    }
 }
 ```
 
@@ -3134,9 +3183,10 @@ to your bean definition to disable the default (inferred) mode.
 ```
 
 ```java (update destroy method, to not call close/shutdown (default))
+
 @Bean(destroyMethod = "")
 public DataSource dataSource() throws NamingException {
-	return (DataSource) jndiTemplate.lookup("MyDS");
+    return (DataSource) jndiTemplate.lookup("MyDS");
 }
 ```
 
@@ -3146,7 +3196,6 @@ ScopedProxyMode - proxyMode support through @Scope annotation:
     ScopedProxyMode.TARGET_CLASS - Create a class-based proxy (uses CGLIB).
     ScopedProxyMode.INTERFACES - Create a JDK dynamic proxy implementing all interfaces exposed by the class of the target object.
     ScopedProxyMode.NO - Do not create a scoped proxy.
-
 
 ```note
 
@@ -3281,7 +3330,9 @@ public class AppConfig {
 	}
 }
 ```
-This method of declaring inter-bean dependencies works only when the @Bean method is declared within a @Configuration class.
+
+This method of declaring inter-bean dependencies works only when the @Bean method is declared within a @Configuration
+class.
 You cannot declare inter-bean dependencies by using plain @Component classes.
 
 
@@ -3309,6 +3360,7 @@ return command.execute();
 	protected abstract Command createCommand();
 }
 ```
+
 By using Java configuration, you can create a subclass of CommandManager where the abstract createCommand()
 method is overridden in such a way that it looks up a new (prototype) command object.
 The following example shows how to do so:
@@ -3349,12 +3401,11 @@ If you prefer to avoid any CGLIB-imposed limitations, consider declaring your @B
 Cross-method calls between @Bean methods are then not intercepted, so you have to exclusively rely on dependency injection at the constructor or method level there.
 ```
 
-
 ---
 Fully-qualifying imported beans for ease of navigation
 ---
 
-This tight coupling can be somewhat mitigated by using interface-based or abstract class-based @Configuration classes. 
+This tight coupling can be somewhat mitigated by using interface-based or abstract class-based @Configuration classes.
 Consider the following example:
 
 ```java
@@ -3404,9 +3455,11 @@ public static void main(String[] args) {
 }
 ```
 
-Now ServiceConfig is loosely coupled with respect to the concrete DefaultRepositoryConfig, and built-in IDE tooling is still useful:
+Now ServiceConfig is loosely coupled with respect to the concrete DefaultRepositoryConfig, and built-in IDE tooling is
+still useful:
 You can easily get a type hierarchy of RepositoryConfig implementations.
-In this way, navigating @Configuration classes and their dependencies becomes no different than the usual process of navigating interface-based code.
+In this way, navigating @Configuration classes and their dependencies becomes no different than the usual process of
+navigating interface-based code.
 
 ---
 Influencing the Startup of @Bean-defined Singletons
@@ -3415,7 +3468,7 @@ Influencing the Startup of @Bean-defined Singletons
 If you want to influence the startup creation order of certain singleton beans,
 consider declaring some of them as @Lazy for creation on first access instead of on startup.
 
-@DependsOn forces certain other beans to be initialized first, making sure that the specified beans are created before 
+@DependsOn forces certain other beans to be initialized first, making sure that the specified beans are created before
 the current bean, beyond what the latter’s direct dependencies imply.
 
 
@@ -3423,7 +3476,8 @@ the current bean, beyond what the latter’s direct dependencies imply.
 Background Initialization
 ---
 
-As of 6.2, there is a background initialization option: @Bean(bootstrap=BACKGROUND) allows for singling out specific beans for background initialization,
+As of 6.2, there is a background initialization option: @Bean(bootstrap=BACKGROUND) allows for singling out specific
+beans for background initialization,
 covering the entire bean creation step for each such bean on context startup.
 
 Dependent beans with non-lazy injection points automatically wait for the bean instance to be completed.
@@ -3431,49 +3485,53 @@ All regular background initializations are forced to complete at the end of cont
 Only beans additionally marked as @Lazy are allowed to be completed later (up until the first actual access).
 
 Background initialization typically goes together with @Lazy (or ObjectProvider) injection points in dependent beans.
-Otherwise, the main bootstrap thread is going to block when an actual background-initialized bean instance needs to be injected early.
+Otherwise, the main bootstrap thread is going to block when an actual background-initialized bean instance needs to be
+injected early.
 
 ---
 Conditionally Include @Configuration Classes or @Bean Methods
 ---
 
-The @Conditional annotation indicates specific org.springframework.context.annotation.Condition implementations that should be consulted before a @Bean is registered.
+The @Conditional annotation indicates specific org.springframework.context.annotation.Condition implementations that
+should be consulted before a @Bean is registered.
 
 ---
 Importing xml to @Configuration
 ---
 
 ````java
+
 @Configuration
 @ImportResource("classpath:/com/acme/properties-config.xml")
 public class AppConfig {
 
-	@Value("${jdbc.url}")
-	private String url;
+    @Value("${jdbc.url}")
+    private String url;
 
-	@Value("${jdbc.username}")
-	private String username;
+    @Value("${jdbc.username}")
+    private String username;
 
-	@Value("${jdbc.password}")
-	private String password;
+    @Value("${jdbc.password}")
+    private String password;
 
-	@Bean
-	public DataSource dataSource() {
-		return new DriverManagerDataSource(url, username, password);
-	}
+    @Bean
+    public DataSource dataSource() {
+        return new DriverManagerDataSource(url, username, password);
+    }
 
-	@Bean
-	public AccountRepository accountRepository(DataSource dataSource) {
-		return new JdbcAccountRepository(dataSource);
-	}
+    @Bean
+    public AccountRepository accountRepository(DataSource dataSource) {
+        return new JdbcAccountRepository(dataSource);
+    }
 
-	@Bean
-	public TransferService transferService(AccountRepository accountRepository) {
-		return new TransferServiceImpl(accountRepository);
-	}
+    @Bean
+    public TransferService transferService(AccountRepository accountRepository) {
+        return new TransferServiceImpl(accountRepository);
+    }
 
 }
 ````
+
         
 ---
 Programmatic Bean Registration
@@ -3483,6 +3541,7 @@ As of Spring Framework 7, a first-class support for programmatic bean registrati
 interface that can be implemented to register beans programmatically in a flexible and efficient way.
 
 ```java
+
 @Configuration
 @Import(MyBeanRegistrar.class)
 class MyConfiguration {
@@ -3490,6 +3549,7 @@ class MyConfiguration {
 ```
 
 #### Activating profile
+
 ```java
 AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
 ctx.getEnvironment().setActiveProfiles("development"); // spring.profiles.active
@@ -3501,25 +3561,26 @@ Default Profile
 The default profile represents the profile that is enabled if no profile is active. Consider the following example:
 
 ```java
+
 @Configuration
 @Profile("default")
 public class DefaultDataConfig {
 
-	@Bean
-	public DataSource dataSource() {
-		return new EmbeddedDatabaseBuilder()
-			.setType(EmbeddedDatabaseType.HSQL)
-			.addScript("classpath:com/bank/config/sql/schema.sql")
-			.build();
-	}
+    @Bean
+    public DataSource dataSource() {
+        return new EmbeddedDatabaseBuilder()
+                .setType(EmbeddedDatabaseType.HSQL)
+                .addScript("classpath:com/bank/config/sql/schema.sql")
+                .build();
+    }
 }
 ```
 
-If no profile is active, the dataSource is created. 
-You can see this as a way to provide a default definition for one or more beans. 
-If any profile is enabled, the default profile does not apply. 
+If no profile is active, the dataSource is created.
+You can see this as a way to provide a default definition for one or more beans.
+If any profile is enabled, the default profile does not apply.
 
-The name of the default profile is default. You can change the name of the default profile 
+The name of the default profile is default. You can change the name of the default profile
 by using setDefaultProfiles() on the Environment or, declaratively, by using the spring.profiles.default property.
        
 ---
@@ -3532,7 +3593,8 @@ Placeholder Resolution in Statements
 </beans>
 ```
 
-In Spring, **Aware interfaces** are a **callback mechanism** that let a bean **“become aware of” internal Spring infrastructure objects** (container, environment, resources, etc.) **without manual lookup**.
+In Spring, **Aware interfaces** are a **callback mechanism** that let a bean **“become aware of” internal Spring
+infrastructure objects** (container, environment, resources, etc.) **without manual lookup**.
 
 They are used when a bean needs **direct access to container-level facilities**, not just other application beans.
 
@@ -3563,7 +3625,7 @@ Bean created
 They solve problems that **normal @Autowired cannot**:
 
 | Problem                 | Why @Autowired is not enough |
-| ----------------------- | ---------------------------- |
+|-------------------------|------------------------------|
 | Need ApplicationContext | Not a regular bean           |
 | Need Bean name          | No bean exists for it        |
 | Need class loader       | JVM-level                    |
@@ -3585,6 +3647,7 @@ They solve problems that **normal @Autowired cannot**:
 * Full access to the Spring container
 
 ```java
+
 @Component
 public class ContextAwareBean implements ApplicationContextAware {
 
@@ -3635,6 +3698,7 @@ public class FactoryAware implements BeanFactoryAware {
 ### `BeanNameAware`
 
 ```java
+
 @Component
 public class NamedBean implements BeanNameAware {
 
@@ -3656,6 +3720,7 @@ public class NamedBean implements BeanNameAware {
 ### `BeanClassLoaderAware`
 
 ```java
+
 @Component
 public class ClassLoaderAwareBean
         implements BeanClassLoaderAware {
@@ -3696,6 +3761,7 @@ public class EnvAware implements EnvironmentAware {
 ### `EmbeddedValueResolverAware`
 
 ```java
+
 @Component
 public class ValueResolverAware
         implements EmbeddedValueResolverAware {
@@ -3716,6 +3782,7 @@ Used internally by Spring more than by apps.
 ### `ResourceLoaderAware`
 
 ```java
+
 @Component
 public class ResourceAware implements ResourceLoaderAware {
 
@@ -3787,6 +3854,7 @@ public class MessageAware
 ### `LoadTimeWeaverAware`
 
 ```java
+
 @Component
 public class WeavingAware
         implements LoadTimeWeaverAware {
@@ -3848,7 +3916,7 @@ This makes them useful for **early initialization logic**.
 # 🆚 Aware Interfaces vs @Autowired
 
 | Aspect           | @Autowired  | Aware          |
-| ---------------- | ----------- | -------------- |
+|------------------|-------------|----------------|
 | Style            | Declarative | Callback       |
 | Coupling         | Low         | High           |
 | Testability      | High        | Lower          |
@@ -3868,13 +3936,16 @@ They are **powerful**, but **not for everyday use**.
 ---
 
 
-Absolutely — here’s a clear, structured, *flow-oriented* explanation of **Spring’s Data Binding (from the reference you linked)** plus informative descriptions of the key concepts involved. I’ll break this down so you can understand how data moves through the binding + validation process in Spring.
+Absolutely — here’s a clear, structured, *flow-oriented* explanation of **Spring’s Data Binding (from the reference you
+linked)** plus informative descriptions of the key concepts involved. I’ll break this down so you can understand how
+data moves through the binding + validation process in Spring.
 
 ---
 
 ## 📌 **Overview: What This Chapter Covers**
 
-Spring’s data binding and validation subsystem is about converting external data (typically user input from web requests) into Java objects, and then optionally validating those objects. ([Home][1])
+Spring’s data binding and validation subsystem is about converting external data (typically user input from web
+requests) into Java objects, and then optionally validating those objects. ([Home][1])
 
 There are three major pieces involved:
 
@@ -3888,7 +3959,8 @@ There are three major pieces involved:
 
 ### 🔹 **What is Data Binding?**
 
-Data binding is the process where Spring takes a set of values (usually a map of property names to strings) and *assigns them to a Java object’s properties*. It’s what makes something like this work:
+Data binding is the process where Spring takes a set of values (usually a map of property names to strings) and *assigns
+them to a Java object’s properties*. It’s what makes something like this work:
 
 ```java
 User user = new User();
@@ -3909,19 +3981,22 @@ The key class is:
 Steps in data binding:
 
 1. **Input values are provided** — usually from HTTP request parameters or a map of property paths.
-2. **Matching property names to setters** — Spring finds JavaBean property names in the input that match setters on your object. ([Home][2])
+2. **Matching property names to setters** — Spring finds JavaBean property names in the input that match setters on your
+   object. ([Home][2])
 3. **Type conversion happens** — e.g., `"25"` → `int 25` → assigned to `user.setAge(25)`.
 4. **Errors are collected** — if a property doesn’t exist or can’t be converted, Spring records errors internally.
 
 👉 *Result:* Your target object is populated with type-safe values without manual parsing. ([Home][2])
 
-📌 Note: Depending on version, Spring supports **constructor binding** (binding via a constructor instead of setters) too. ([Home][2])
+📌 Note: Depending on version, Spring supports **constructor binding** (binding via a constructor instead of setters)
+too. ([Home][2])
 
 ---
 
 ## 🔄 **2) Type Conversion — Turning Strings into Java Types**
 
-Web requests often send everything as **strings** — even numbers, dates, enums, booleans. Spring has two mechanisms to deal with this:
+Web requests often send everything as **strings** — even numbers, dates, enums, booleans. Spring has two mechanisms to
+deal with this:
 
 ### 🧩 **PropertyEditors** (older approach)
 
@@ -3931,9 +4006,11 @@ You can register your own for custom formats. ([Home][2])
 
 ### ⚙️ **ConversionService + Converters/Formatters**
 
-A newer, more flexible system than PropertyEditors, introduced in Spring to unify type conversion (e.g., for REST, WebFlux, etc.). ([Home][3])
+A newer, more flexible system than PropertyEditors, introduced in Spring to unify type conversion (e.g., for REST,
+WebFlux, etc.). ([Home][3])
 
-You can register custom **Converter** or **Formatter** implementations to control precisely how values are converted. ([Home][3])
+You can register custom **Converter** or **Formatter** implementations to control precisely how values are
+converted. ([Home][3])
 
 **Example:** Converting `"true"` → `Boolean.TRUE`, `"123"` → `Integer.valueOf(123)`, etc. ([Home][3])
 
@@ -3992,7 +4069,8 @@ if (bindingResult.hasErrors()) {
 }
 ```
 
-In Spring MVC, `BindingResult` is typically paired with a controller method parameter immediately after the bound object (e.g., `@Valid User user, BindingResult br`). Spring fills this for you automatically.
+In Spring MVC, `BindingResult` is typically paired with a controller method parameter immediately after the bound
+object (e.g., `@Valid User user, BindingResult br`). Spring fills this for you automatically.
 
 ---
 
@@ -4016,9 +4094,11 @@ Here’s the order of operations for a web request:
 
 ### 🧰 **@InitBinder methods**
 
-Inside controllers, you can customize binding specific to that controller or model attribute — e.g., add custom formatters or allowed fields:
+Inside controllers, you can customize binding specific to that controller or model attribute — e.g., add custom
+formatters or allowed fields:
 
 ```java
+
 @InitBinder
 public void init(WebDataBinder binder) {
     binder.addCustomFormatter(new DateFormatter("yyyy-MM-dd"));
@@ -4032,7 +4112,7 @@ This runs before binding and lets you tune type conversion or validation. ([Home
 ## 📌 **Summary: How It All Fits Together**
 
 | Stage               | What Happens                          | Who Does It                            |
-| ------------------- | ------------------------------------- | -------------------------------------- |
+|---------------------|---------------------------------------|----------------------------------------|
 | **Binding**         | Move raw values into object           | `DataBinder`                           |
 | **Type Conversion** | Convert strings → target types        | `ConversionService` / `PropertyEditor` |
 | **Validation**      | Check constraints on resulting object | `Validator` / Bean Validation          |
@@ -4049,39 +4129,48 @@ This runs before binding and lets you tune type conversion or validation. ([Home
 
 ---
 
-If you want, I can also provide a **diagram/sequence flow** showing how these pieces interact at runtime, or an example Spring Boot controller that uses all of these concepts together in practice. Just let me know!
+If you want, I can also provide a **diagram/sequence flow** showing how these pieces interact at runtime, or an example
+Spring Boot controller that uses all of these concepts together in practice. Just let me know!
 
 [1]: https://docs.spring.io/spring-framework/reference/core/validation.html?utm_source=chatgpt.com "Validation, Data Binding, and Type Conversion :: Spring Framework"
+
 [2]: https://docs.spring.io/spring/reference/7.0/core/validation/data-binding.html?utm_source=chatgpt.com "Data Binding :: Spring Framework"
+
 [3]: https://docs.spring.io/spring-framework/docs/4.1.x/spring-framework-reference/html/validation.html?utm_source=chatgpt.com "7. Validation, Data Binding, and Type Conversion"
+
 [4]: https://docs.spring.io/spring-framework/docs/4.0.7.RELEASE/spring-framework-reference/pdf/spring-framework-reference.pdf?utm_source=chatgpt.com "Spring Framework Reference Documentation"
+
 [5]: https://docs.spring.io/spring-framework/reference/web/webflux/controller/ann-initbinder.html?utm_source=chatgpt.com "DataBinder :: Spring Framework"
 
-
 ## Data Binding
-Data binding is useful for binding user input to a target object where user input is a map with property paths as keys, following JavaBeans conventions. DataBinder is the main class that supports this, and it provides two ways to bind user input:
 
-Constructor binding - bind user input to a public data constructor, looking up constructor argument values in the user input.
+Data binding is useful for binding user input to a target object where user input is a map with property paths as keys,
+following JavaBeans conventions. DataBinder is the main class that supports this, and it provides two ways to bind user
+input:
 
-Property binding - bind user input to setters, matching keys from the user input to properties of the target object structure.
+Constructor binding - bind user input to a public data constructor, looking up constructor argument values in the user
+input.
+
+Property binding - bind user input to setters, matching keys from the user input to properties of the target object
+structure.
 
 You can apply both constructor and property binding or only one.
 
 ## PropertyEditors
 
 Spring uses the concept of a PropertyEditor to effect the conversion between an Object and a String.
-It can be handy to represent properties in a different way than the object itself. 
+It can be handy to represent properties in a different way than the object itself.
 For example, a Date can be represented in a human readable way (as the String: '2007-14-09'),
 while we can still convert the human readable form back to the original date (or, even better,
 convert any date entered in a human readable form back to Date objects).
-This behavior can be achieved by registering custom editors of type java.beans.PropertyEditor. 
-Registering custom editors on a BeanWrapper or, alternatively, in a specific IoC container (as mentioned in the previous chapter),
+This behavior can be achieved by registering custom editors of type java.beans.PropertyEditor.
+Registering custom editors on a BeanWrapper or, alternatively, in a specific IoC container (as mentioned in the previous
+chapter),
 gives it the knowledge of how to convert properties to the desired type.
 
-Spring has a number of built-in PropertyEditor implementations to make life easy. 
+Spring has a number of built-in PropertyEditor implementations to make life easy.
 They are all located in the org.springframework.beans.propertyeditors package.
 Most, (but not all, as indicated in the following table) are, by default, registered by BeanWrapperImpl.
-
 
 ```kotlin notebook
 Note also that the standard JavaBeans infrastructure automatically discovers PropertyEditor classes (without you having to register them explicitly)
@@ -4098,7 +4187,7 @@ com
       SomethingEditor // the PropertyEditor for the Something class
 ```
 
-same for BeanInfo: 
+same for BeanInfo:
 
 ``` kotlin notebook
 com
@@ -4166,7 +4255,7 @@ public class RegisterUserController {
 }
 ```
 
-This style of PropertyEditor registration can lead to concise code 
+This style of PropertyEditor registration can lead to concise code
 (the implementation of the @InitBinder method is only one line long)
 and lets common PropertyEditor registration code be encapsulated in a class
 and then shared amongst as many controllers as needed.
@@ -4174,9 +4263,11 @@ and then shared amongst as many controllers as needed.
 ## Spring Type Conversion
 
 ## Spring Type Conversion
-The core.convert package provides a general type conversion system. 
+
+The core.convert package provides a general type conversion system.
 The system defines an SPI to implement type conversion logic and an API to perform type conversions at runtime.
-Within a Spring container, you can use this system as an alternative to PropertyEditor implementations to convert externalized
+Within a Spring container, you can use this system as an alternative to PropertyEditor implementations to convert
+externalized
 bean property value strings to the required property types.
 You can also use the public API anywhere in your application where type conversion is needed.
 
@@ -4186,12 +4277,13 @@ package org.springframework.core.convert.converter;
 
 public interface Converter<S, T> {
 
-	T convert(S source);
+    T convert(S source);
 }
 ```
 
 ## Using GenericConverter
-When you require a more sophisticated Converter implementation, consider using the GenericConverter interface. 
+
+When you require a more sophisticated Converter implementation, consider using the GenericConverter interface.
 With a more flexible but less strongly typed signature than Converter,
 a GenericConverter supports converting between multiple source and target types.
 
@@ -4242,9 +4334,12 @@ cs.convert(input,
 
 ## Spring Field Formatting
 
-In general, you can use the Converter SPI when you need to implement general-purpose type conversion logic — for example,
-for converting between a java.util.Date and a Long. You can use the Formatter SPI when you work in a client environment (such as a web application)
-and need to parse and print localized field values. The ConversionService provides a unified type conversion API for both SPIs.
+In general, you can use the Converter SPI when you need to implement general-purpose type conversion logic — for
+example,
+for converting between a java.util.Date and a Long. You can use the Formatter SPI when you work in a client
+environment (such as a web application)
+and need to parse and print localized field values. The ConversionService provides a unified type conversion API for
+both SPIs.
 
 ### The Formatter SPI
 
@@ -4254,6 +4349,7 @@ package org.springframework.format;
 public interface Formatter<T> extends Printer<T>, Parser<T> {
 }
 ```
+
 ```java
 package org.springframework.format.datetime;
 
@@ -4289,7 +4385,8 @@ public final class DateFormatter implements Formatter<Date> {
 
 ### Annotation-driven Formatting
 
-Field formatting can be configured by field type or annotation. To bind an annotation to a Formatter, implement AnnotationFormatterFactory.
+Field formatting can be configured by field type or annotation. To bind an annotation to a Formatter, implement
+AnnotationFormatterFactory.
 The following listing shows the definition of the AnnotationFormatterFactory interface:
 
 ```java
@@ -4355,10 +4452,10 @@ public class MyModel {
 }
 ```
 
-
 ## Configuring a Global Date and Time Format
 
-By default, date and time fields not annotated with @DateTimeFormat are converted from strings by using the DateFormat.SHORT style.
+By default, date and time fields not annotated with @DateTimeFormat are converted from strings by using the
+DateFormat.SHORT style.
 If you prefer, you can change this by defining your own global format.
 To do that, ensure that Spring does not register default formatters.
 Instead, register formatters manually with the help of:
@@ -4366,34 +4463,34 @@ Instead, register formatters manually with the help of:
 ** org.springframework.format.datetime.standard.DateTimeFormatterRegistrar
 ** org.springframework.format.datetime.DateFormatterRegistrar
 
-
 ```java
+
 @Configuration
 public class ApplicationConfiguration {
 
-	@Bean
-	public FormattingConversionService conversionService() {
+    @Bean
+    public FormattingConversionService conversionService() {
 
-		// Use the DefaultFormattingConversionService but do not register defaults
-		DefaultFormattingConversionService conversionService =
-				new DefaultFormattingConversionService(false);
+        // Use the DefaultFormattingConversionService but do not register defaults
+        DefaultFormattingConversionService conversionService =
+                new DefaultFormattingConversionService(false);
 
-		// Ensure @NumberFormat is still supported
-		conversionService.addFormatterForFieldAnnotation(
-				new NumberFormatAnnotationFormatterFactory());
+        // Ensure @NumberFormat is still supported
+        conversionService.addFormatterForFieldAnnotation(
+                new NumberFormatAnnotationFormatterFactory());
 
-		// Register JSR-310 date conversion with a specific global format
-		DateTimeFormatterRegistrar dateTimeRegistrar = new DateTimeFormatterRegistrar();
-		dateTimeRegistrar.setDateFormatter(DateTimeFormatter.ofPattern("yyyyMMdd"));
-		dateTimeRegistrar.registerFormatters(conversionService);
+        // Register JSR-310 date conversion with a specific global format
+        DateTimeFormatterRegistrar dateTimeRegistrar = new DateTimeFormatterRegistrar();
+        dateTimeRegistrar.setDateFormatter(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        dateTimeRegistrar.registerFormatters(conversionService);
 
-		// Register date conversion with a specific global format
-		DateFormatterRegistrar dateRegistrar = new DateFormatterRegistrar();
-		dateRegistrar.setFormatter(new DateFormatter("yyyyMMdd"));
-		dateRegistrar.registerFormatters(conversionService);
+        // Register date conversion with a specific global format
+        DateFormatterRegistrar dateRegistrar = new DateFormatterRegistrar();
+        dateRegistrar.setFormatter(new DateFormatter("yyyyMMdd"));
+        dateRegistrar.registerFormatters(conversionService);
 
-		return conversionService;
-	}
+        return conversionService;
+    }
 }
 ```
 
@@ -4402,19 +4499,21 @@ public class ApplicationConfiguration {
 ```java
 public class PersonForm {
 
-	@NotNull
-	@Size(max=64)
-	private String name;
+    @NotNull
+    @Size(max = 64)
+    private String name;
 
-	@Min(0)
-	private int age;
+    @Min(0)
+    private int age;
 }
 ```
 
 ## Configuring a Bean Validation Provider
 
-Spring provides full support for the Bean Validation API including the bootstrapping of a Bean Validation provider as a Spring bean.
-This lets you inject a jakarta.validation.ValidatorFactory or jakarta.validation.Validator wherever validation is needed in your application.
+Spring provides full support for the Bean Validation API including the bootstrapping of a Bean Validation provider as a
+Spring bean.
+This lets you inject a jakarta.validation.ValidatorFactory or jakarta.validation.Validator wherever validation is needed
+in your application.
 
 ```java
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -4431,10 +4530,12 @@ public class AppConfig {
 
 ## Inject Jakarta Validator
 
-LocalValidatorFactoryBean implements both jakarta.validation.ValidatorFactory and jakarta.validation.Validator, so you can inject a reference to the latter to apply
+LocalValidatorFactoryBean implements both jakarta.validation.ValidatorFactory and jakarta.validation.Validator, so you
+can inject a reference to the latter to apply
 validation logic if you prefer to work with the Bean Validation API directly, as the following example shows:
 
-In addition to implementing jakarta.validation.Validator, LocalValidatorFactoryBean also adapts to org.springframework.validation.Validator
+In addition to implementing jakarta.validation.Validator, LocalValidatorFactoryBean also adapts to
+org.springframework.validation.Validator
 
 ```java
 import jakarta.validation.Validator;
@@ -4450,14 +4551,16 @@ public class MyService {
 ## Configure Custom Constraints
 
 ```java
+
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy=MyConstraintValidator.class)
+@Constraint(validatedBy = MyConstraintValidator.class)
 public @interface MyConstraint {
 }
 ```
 
-Here’s a **clear, practical explanation** of the Spring Bean Validation concepts from the article you pointed to, with emphasis on why/when to use certain pieces, *plus* examples.
+Here’s a **clear, practical explanation** of the Spring Bean Validation concepts from the article you pointed to, with
+emphasis on why/when to use certain pieces, *plus* examples.
 
 ---
 
@@ -4467,10 +4570,13 @@ In Spring you normally want a **shared validation engine** that the framework ca
 
 ### ✅ What it gives you
 
-* **Bootstraps a JSR-303/JSR-380 provider** (e.g., Hibernate Validator) automatically at app startup. Spring detects the provider on the classpath and sets it up as a Spring bean. ([Home][1])
+* **Bootstraps a JSR-303/JSR-380 provider** (e.g., Hibernate Validator) automatically at app startup. Spring detects the
+  provider on the classpath and sets it up as a Spring bean. ([Home][1])
 * Makes a `ValidatorFactory`/`Validator` injectable anywhere you need programmatic validation. ([Home][1])
-* Integrates with the Spring `Validator` interface too, so it can adapt constraint violations into Spring’s `Errors`/`FieldError`s. ([Home][1])
-* If you define one as `@Primary`, Spring MVC/Spring WebFlux will use your custom validator for controller method validation. ([Home][2])
+* Integrates with the Spring `Validator` interface too, so it can adapt constraint violations into Spring’s `Errors`/
+  `FieldError`s. ([Home][1])
+* If you define one as `@Primary`, Spring MVC/Spring WebFlux will use your custom validator for controller method
+  validation. ([Home][2])
 
 ### Example: Bean config
 
@@ -4496,7 +4602,7 @@ So Spring can wire it for you in different contexts. ([Home][1])
 ## 🆚 `@Valid` vs `@Validated`
 
 | Feature              | **@Valid**                                                  | **@Validated**                                      |
-| -------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
+|----------------------|-------------------------------------------------------------|-----------------------------------------------------|
 | Origin               | Standard JSR-303 / Bean Validation                          | Spring Framework                                    |
 | Trigger validation   | Yes (JSR-303 rules)                                         | Yes (plus Spring extension logic)                   |
 | Supports groups      | ❌                                                           | ✅                                                   |
@@ -4535,7 +4641,8 @@ public class AccountService {
 }
 ```
 
-👉 Note: By itself, `@Valid` doesn’t trigger *method parameter constraint validation* — that’s the job of Spring and the `MethodValidationPostProcessor` when paired with `@Validated`. ([Home][3])
+👉 Note: By itself, `@Valid` doesn’t trigger *method parameter constraint validation* — that’s the job of Spring and the
+`MethodValidationPostProcessor` when paired with `@Validated`. ([Home][3])
 
 ---
 
@@ -4549,7 +4656,8 @@ Beyond validating object graphs, Bean Validation can validate **method parameter
 public String sendEmail(@Email String emailAddress) {...}
 ```
 
-JSR-303 providers (like Hibernate Validator) understand these constraint annotations and can throw exceptions before the method body runs.
+JSR-303 providers (like Hibernate Validator) understand these constraint annotations and can throw exceptions before the
+method body runs.
 
 ### 🔹 Spring support
 
@@ -4578,7 +4686,8 @@ On violations, Spring will throw either:
 Spring MVC also uses validation automatically:
 
 * `@Valid @RequestBody` → binds and checks fields → throws `MethodArgumentNotValidException` if errors. ([Home][3])
-* Direct constraint on parameters (e.g., `@Min` on a controller param) → may produce `HandlerMethodValidationException`. ([Home][3])
+* Direct constraint on parameters (e.g., `@Min` on a controller param) → may produce
+  `HandlerMethodValidationException`. ([Home][3])
 
 You can handle these exceptions globally with `@ControllerAdvice`.
 
@@ -4615,8 +4724,11 @@ If username is blank, Spring MVC throws a 400 with `MethodArgumentNotValidExcept
 ### 2) **Validation Groups with @Validated**
 
 ```java
-public interface OnCreate {}
-public interface OnUpdate {}
+public interface OnCreate {
+}
+
+public interface OnUpdate {
+}
 
 public class UserDto {
     @NotNull(groups = OnUpdate.class)
@@ -4630,7 +4742,8 @@ public class UserDto {
 public class UserController {
 
     @PostMapping("/create")
-    public void create(@Validated(OnCreate.class) @RequestBody UserDto dto) {}
+    public void create(@Validated(OnCreate.class) @RequestBody UserDto dto) {
+    }
 }
 ```
 
@@ -4643,13 +4756,17 @@ This lets you reuse the same class with different validation contexts.
 #### Step 1: Define annotation
 
 ```java
-@Target({ ElementType.FIELD })
+
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = StartsWithValidator.class)
 public @interface StartsWith {
     String value();
+
     String message() default "must start with prefix";
+
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
 }
 ```
@@ -4689,6 +4806,7 @@ If `sku` doesn’t start with `"SKU-"`, validation fails with a `ConstraintViola
 ### 4) **Method Validation Example**
 
 ```java
+
 @Service
 @Validated
 public class OrderService {
@@ -4740,11 +4858,15 @@ Also handle `ConstraintViolationException` for method-level violations.
 
 ---
 
-If you want, I can also give you example tests for these setups or advice on how to structure DTO vs domain validation in a real project.
+If you want, I can also give you example tests for these setups or advice on how to structure DTO vs domain validation
+in a real project.
 
 [1]: https://docs.spring.io/spring-framework/reference/core/validation/beanvalidation.html?utm_source=chatgpt.com "Java Bean Validation :: Spring Framework"
+
 [2]: https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/validation.html?utm_source=chatgpt.com "Validation :: Spring Framework"
+
 [3]: https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-validation.html?utm_source=chatgpt.com "Validation :: Spring Framework"
+
 [4]: https://docs.spring.vmware.com/spring-framework/reference/core/validation/beanvalidation.html?utm_source=chatgpt.com "Java Bean Validation :: Spring Framework"
 
 
@@ -4823,6 +4945,7 @@ Spring **does NOT automatically validate method arguments** of services.
 This **will NOT validate**:
 
 ```java
+
 @Service
 public class UserService {
 
@@ -4846,6 +4969,7 @@ Because Spring does not intercept method calls **unless you tell it to**.
 When you put `@Validated` on a class:
 
 ```java
+
 @Service
 @Validated
 public class UserService {
@@ -4875,6 +4999,7 @@ This is called **Method Validation**.
 ### Configuration (required)
 
 ```java
+
 @Bean
 public MethodValidationPostProcessor methodValidationPostProcessor() {
     return new MethodValidationPostProcessor();
@@ -4952,8 +5077,11 @@ You need **both roles**, but only `@Validated` triggers method validation.
 ### Example
 
 ```java
-public interface Create {}
-public interface Update {}
+public interface Create {
+}
+
+public interface Update {
+}
 
 public class UserDto {
 
@@ -4985,7 +5113,7 @@ This is **impossible with `@Valid`**.
 # 8️⃣ Summary table (memorize this)
 
 | Situation                          | Use                      |
-| ---------------------------------- | ------------------------ |
+|------------------------------------|--------------------------|
 | Validate REST request body         | `@Valid`                 |
 | Validate nested DTOs               | `@Valid`                 |
 | Validate service method parameters | `@Validated`             |
@@ -5015,7 +5143,8 @@ Just tell me 👍
 Great question 👍
 This is exactly where Bean Validation **starts to make sense**.
 
-Below are **real production-style patterns** that teams actually use in Spring projects, especially in **layered architectures** (Controller → Service → Domain).
+Below are **real production-style patterns** that teams actually use in Spring projects, especially in **layered
+architectures** (Controller → Service → Domain).
 
 I’ll show:
 
@@ -5114,12 +5243,13 @@ public class UserController {
 ### Example
 
 ```java
+
 @Service
 @Validated
 public class UserService {
 
     public void createUser(
-        @NotNull CreateUserRequest request
+            @NotNull CreateUserRequest request
     ) {
         // business logic
     }
@@ -5185,6 +5315,7 @@ transfer(null, 5L, BigDecimal.TEN);
 ### Example: JPA Entity
 
 ```java
+
 @Entity
 public class Account {
 
@@ -5246,12 +5377,14 @@ public class UserDto {
 ### Controller
 
 ```java
+
 @PostMapping
 public void create(@Validated(Create.class) @RequestBody UserDto dto) {
 }
 ```
 
 ```java
+
 @PutMapping
 public void update(@Validated(Update.class) @RequestBody UserDto dto) {
 }
@@ -5276,12 +5409,15 @@ This is **NOT** a controller concern.
 ### Custom constraint
 
 ```java
+
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = UniqueUsernameValidator.class)
 public @interface UniqueUsername {
     String message() default "Username already exists";
+
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
 }
 ```
@@ -5324,6 +5460,7 @@ This is **very common in real systems**.
 ### Global handler
 
 ```java
+
 @RestControllerAdvice
 public class ValidationExceptionHandler {
 
@@ -5384,7 +5521,8 @@ Just tell me which one 👌
 --------------------------
 
 Perfect — this is where everything clicks.
-Below is a **Netflix / Uber–style validation structure**, simplified but **architecturally accurate**, the way large-scale backend teams actually do it.
+Below is a **Netflix / Uber–style validation structure**, simplified but **architecturally accurate**, the way
+large-scale backend teams actually do it.
 
 I’ll show:
 
@@ -5725,23 +5863,735 @@ If you want next, I can:
 * Show **transaction + validation ordering**
 * Show **how this looks in tests**
 
-
 --------------
 
 ```java
 Foo target = new Foo();
 DataBinder binder = new DataBinder(target);
-binder.setValidator(new FooValidator());
+binder.
+
+setValidator(new FooValidator());
 
 // bind to the target object
-binder.bind(propertyValues);
+        binder.
+
+bind(propertyValues);
 
 // validate the target object
-binder.validate();
+binder.
+
+validate();
 
 // get BindingResult that includes any validation errors
 BindingResult results = binder.getBindingResult();
 ```
+
+-------------------------
+
+## Spring Expression Language (SpEL)
+
+The Spring Expression Language was created to provide the Spring community with a single well-supported
+expression language that can be used across all the products in the Spring portfolio.
+
+The ExpressionParser interface is responsible for parsing an expression string.
+
+EvaluationContext defines what data SpEL can see and what it is allowed to do when evaluating an expression.(Think of it as the execution environment for SpEL.)
+Without an EvaluationContext, SpEL is:
+
+blind (no variables)
+
+unsafe (can call anything)
+
+limited (no custom functions)
+
+
+Spring introduced restricted contexts:
+
+StandardEvaluationContext → powerful, flexible
+
+SimpleEvaluationContext → safe, read-only
+
+
+When you work with generic types in expressions, SpEL attempts conversions to maintain type correctness for any objects it encounters.
+
+```java
+class Simple {
+	public List<Boolean> booleanList = new ArrayList<>();
+}
+
+Simple simple = new Simple();
+simple.booleanList.add(true);
+
+EvaluationContext context = SimpleEvaluationContext.forReadOnlyDataBinding().build();
+
+// "false" is passed in here as a String. SpEL and the conversion service
+// will recognize that it needs to be a Boolean and convert it accordingly.
+parser.parseExpression("booleanList[0]").setValue(context, simple, "false");
+
+// b is false
+Boolean b = simple.booleanList.get(0);
+```
+
+### Parser Configuration
+
+It is possible to configure the SpEL expression parser by using a parser configuration object (org.springframework.expression.spel.SpelParserConfiguration).
+The configuration object controls the behavior of some of the expression components.
+
+```java
+class Demo {
+	public List<String> list;
+}
+
+// Turn on:
+// - auto null reference initialization
+// - auto collection growing
+SpelParserConfiguration config = new SpelParserConfiguration(true, true);
+
+ExpressionParser parser = new SpelExpressionParser(config);
+
+Expression expression = parser.parseExpression("list[3]");
+
+Demo demo = new Demo();
+
+Object o = expression.getValue(demo);
+
+// demo.list will now be a real collection of 4 entries
+// Each entry is a new empty String
+```
+
+### Compiler Configuration
+
+The compiler is not turned on by default, but you can turn it on in either of two different ways.
+You can turn it on by using the parser configuration process (discussed earlier) or by using a Spring property
+when SpEL usage is embedded inside another component. This section discusses both of these options.
+
+SpelCompilerMode controls whether SpEL expressions are interpreted or compiled to bytecode at runtime.
+
+SpelCompilerMode values: OFF(interpreted), IMMEDIATE, MIX
+
+SpelCompilerMode.MIX Behavior:
+
+    Start interpreted
+    
+    Collect runtime type info
+    
+    Compile after threshold
+    
+    If compiled version fails → fallback to interpreted
+    
+    ✅ Best of both worlds
+    ✅ Safe
+    ✅ Fast
+
+Interpret → Observe → Compile → Execute
+↓
+Fallback if needed
+
+
+One-sentence takeaway
+
+SpelCompilerMode is a JIT optimizer for SpEL — use MIXED for hot, trusted expressions; avoid IMMEDIATE unless you fully control runtime types.
+
+### Compiler Limitations
+
+Spring does not support compiling every kind of expression. The primary focus is on common expressions that are likely to be used in performance-critical contexts. The following kinds of expressions cannot be compiled.
+
+    Expressions involving assignment
+
+    Expressions relying on the conversion service
+
+    Expressions using custom resolvers
+
+    Expressions using overloaded operators
+
+    Expressions using array construction syntax
+
+    Expressions using selection or projection
+
+    Expressions using bean references
+
+
+
+```java
+SpelParserConfiguration config = new SpelParserConfiguration(SpelCompilerMode.IMMEDIATE,
+		this.getClass().getClassLoader());
+
+SpelExpressionParser parser = new SpelExpressionParser(config);
+
+Expression expr = parser.parseExpression("payload");
+
+MyMessage message = new MyMessage();
+
+Object payload = expr.getValue(message);
+```
+
+
+The expression language supports the following functionality:
+
+### Literal expressions
+
+```java
+ExpressionParser parser = new SpelExpressionParser();
+Expression exp = parser.parseExpression("'Hello World'");
+String message = (String) exp.getValue();
+```
+
+```java
+ExpressionParser parser = new SpelExpressionParser();
+Expression exp = parser.parseExpression("'Hello World'.concat('!')");
+String message = (String) exp.getValue();
+```
+
+```java
+ExpressionParser parser = new SpelExpressionParser();
+
+// invokes 'getBytes()'
+Expression exp = parser.parseExpression("'Hello World'.bytes");
+byte[] bytes = (byte[]) exp.getValue();
+```
+
+```java
+ExpressionParser parser = new SpelExpressionParser();
+Expression exp = parser.parseExpression("new String('hello world').toUpperCase()");
+String message = exp.getValue(String.class); // EvaluationException for wrong cast
+```
+
+```java
+// Create and set a calendar
+GregorianCalendar c = new GregorianCalendar();
+c.set(1856, 7, 9);
+
+// The constructor arguments are name, birthday, and nationality.
+Inventor tesla = new Inventor("Nikola Tesla", c.getTime(), "Serbian");
+
+ExpressionParser parser = new SpelExpressionParser();
+
+Expression exp = parser.parseExpression("name"); // Parse name as an expression
+String name = (String) exp.getValue(tesla);
+// name == "Nikola Tesla"
+
+exp = parser.parseExpression("name == 'Nikola Tesla'");
+boolean result = exp.getValue(tesla, Boolean.class);
+// result == true
+```
+
+```java
+ExpressionParser parser = new SpelExpressionParser();
+
+// evaluates to "Hello World"
+String helloWorld = (String) parser.parseExpression("'Hello World'").getValue();
+
+// evaluates to "Tony's Pizza"
+String pizzaParlor = (String) parser.parseExpression("'Tony''s Pizza'").getValue();
+
+double avogadrosNumber = (Double) parser.parseExpression("6.0221415E+23").getValue();
+
+// evaluates to 2147483647
+int maxValue = (Integer) parser.parseExpression("0x7FFFFFFF").getValue();
+
+boolean trueValue = (Boolean) parser.parseExpression("true").getValue();
+
+Object nullValue = parser.parseExpression("null").getValue();
+```
+
+### Accessing properties, arrays, lists, and maps
+
+```java
+// evaluates to 1856
+int year = (Integer) parser.parseExpression("birthdate.year + 1900").getValue(context);
+
+// evaluates to "Smiljan"
+String city = (String) parser.parseExpression("placeOfBirth.city").getValue(context);
+```
+
+```java
+ExpressionParser parser = new SpelExpressionParser();
+EvaluationContext context = SimpleEvaluationContext.forReadOnlyDataBinding().build();
+
+// Inventions Array
+
+// evaluates to "Induction motor"
+String invention = parser.parseExpression("inventions[3]").getValue(
+		context, tesla, String.class);
+
+// Members List
+
+// evaluates to "Nikola Tesla"
+String name = parser.parseExpression("members[0].name").getValue(
+		context, ieee, String.class);
+
+// List and Array Indexing
+
+// evaluates to "Wireless communication"
+String invention = parser.parseExpression("members[0].inventions[6]").getValue(
+		context, ieee, String.class);
+```
+
+```java
+// Officer's Map
+
+// evaluates to Inventor("Pupin")
+Inventor pupin = parser.parseExpression("officers['president']")
+		.getValue(societyContext, Inventor.class);
+
+// evaluates to "Idvor"
+String city = parser.parseExpression("officers['president'].placeOfBirth.city")
+		.getValue(societyContext, String.class);
+
+String countryExpression = "officers['advisors'][0].placeOfBirth.country";
+
+// setting values
+parser.parseExpression(countryExpression)
+		.setValue(societyContext, "Croatia");
+
+// evaluates to "Croatia"
+String country = parser.parseExpression(countryExpression)
+		.getValue(societyContext, String.class);
+```
+
+```java
+// Create an inventor to use as the root context object.
+Inventor tesla = new Inventor("Nikola Tesla");
+
+// evaluates to "Nikola Tesla"
+String name = parser.parseExpression("#root['name']")
+		.getValue(context, tesla, String.class);
+```
+
+### Inline lists
+
+```java
+// evaluates to a Java list containing the four numbers
+List numbers = (List) parser.parseExpression("{1,2,3,4}").getValue(context);
+
+List listOfLists = (List) parser.parseExpression("{{'a','b'},{'x','y'}}").getValue(context);
+```
+
+### Inline maps
+
+```java
+// evaluates to a Java map containing the two entries
+Map inventorInfo = (Map) parser.parseExpression("{name:'Nikola',dob:'10-July-1856'}").getValue(context);
+
+Map mapOfMaps = (Map) parser.parseExpression("{name:{first:'Nikola',last:'Tesla'},dob:{day:10,month:'July',year:1856}}").getValue(context);
+```
+
+### Array construction
+
+```java
+int[] numbers1 = (int[]) parser.parseExpression("new int[4]").getValue(context);
+
+// Array with initializer
+int[] numbers2 = (int[]) parser.parseExpression("new int[] {1, 2, 3}").getValue(context);
+
+// Multi dimensional array
+int[][] numbers3 = (int[][]) parser.parseExpression("new int[4][5]").getValue(context);
+```
+
+### Relational operators
+
+These operators work on Number types as well as types implementing Comparable.
+
+```java
+// evaluates to true
+boolean trueValue = parser.parseExpression("2 == 2").getValue(Boolean.class);
+
+// evaluates to false
+boolean falseValue = parser.parseExpression("2 < -5.0").getValue(Boolean.class);
+
+// evaluates to true
+boolean trueValue = parser.parseExpression("'black' < 'block'").getValue(Boolean.class);
+
+// uses CustomValue:::compareTo
+boolean trueValue = parser.parseExpression("new CustomValue(1) < new CustomValue(2)").getValue(Boolean.class);
+```
+
+Each symbolic operator can also be specified as a purely textual equivalent:
+
+    lt (<)
+
+    gt (>)
+
+    le (<=)
+
+    ge (>=)
+
+    eq (==)
+
+    ne (!=)
+
+
+```java
+boolean result;
+
+// evaluates to true
+result = parser.parseExpression(
+		"1 between {1, 5}").getValue(Boolean.class);
+
+// evaluates to false
+result = parser.parseExpression(
+		"1 between {10, 15}").getValue(Boolean.class);
+
+// evaluates to true
+result = parser.parseExpression(
+		"'elephant' between {'aardvark', 'zebra'}").getValue(Boolean.class);
+
+// evaluates to false
+result = parser.parseExpression(
+		"'elephant' between {'aardvark', 'cobra'}").getValue(Boolean.class);
+
+// evaluates to true
+result = parser.parseExpression(
+		"123 instanceof T(Integer)").getValue(Boolean.class);
+
+// evaluates to false
+result = parser.parseExpression(
+		"'xyz' instanceof T(Integer)").getValue(Boolean.class);
+
+// evaluates to true
+result = parser.parseExpression(
+		"'5.00' matches '^-?\\d+(\\.\\d{2})?$'").getValue(Boolean.class);
+
+// evaluates to false
+result = parser.parseExpression(
+		"'5.0067' matches '^-?\\d+(\\.\\d{2})?$'").getValue(Boolean.class);
+```
+
+```kotlin notebook
+
+	
+
+The syntax for the between operator is <input> between {<range_begin>, <range_end>}, which is effectively a shortcut for <input> >= <range_begin> && <input> <= <range_end>}.
+
+Consequently, 1 between {1, 5} evaluates to true, while 1 between {5, 1} evaluates to false.
+
+```
+
+### Regular expressions
+
+### Logical operators
+
+SpEL supports the following logical (boolean) operators:
+
+    and (&&)
+
+    or (||)
+
+    not (!)
+
+```java
+// -- AND --
+
+// evaluates to false
+boolean falseValue = parser.parseExpression("true and false").getValue(Boolean.class);
+
+// evaluates to true
+String expression = "isMember('Nikola Tesla') and isMember('Mihajlo Pupin')";
+boolean trueValue = parser.parseExpression(expression).getValue(societyContext, Boolean.class);
+
+// -- OR --
+
+// evaluates to true
+boolean trueValue = parser.parseExpression("true or false").getValue(Boolean.class);
+
+// evaluates to true
+String expression = "isMember('Nikola Tesla') or isMember('Albert Einstein')";
+boolean trueValue = parser.parseExpression(expression).getValue(societyContext, Boolean.class);
+
+// -- NOT --
+
+// evaluates to false
+boolean falseValue = parser.parseExpression("!true").getValue(Boolean.class);
+
+// -- AND and NOT --
+
+String expression = "isMember('Nikola Tesla') and !isMember('Mihajlo Pupin')";
+boolean falseValue = parser.parseExpression(expression).getValue(societyContext, Boolean.class);
+```
+
+### String operators
+
+
+
+You can use the following operators on strings.
+
+    concatenation (+)
+
+    subtraction (-)
+
+        for use with a string containing a single character (only chars)
+
+    repeat (*)
+
+```java
+// -- Concatenation --
+
+// evaluates to "hello world"
+String helloWorld = parser.parseExpression("'hello' + ' ' + 'world'")
+        .getValue(String.class);
+
+// -- Character Subtraction --
+
+// evaluates to 'a'
+char ch = parser.parseExpression("'d' - 3")
+        .getValue(char.class);
+
+// -- Repeat --
+
+// evaluates to "abcabc"
+String repeated = parser.parseExpression("'abc' * 2")
+        .getValue(String.class);
+```
+
+
+### Mathematical operators
+
+
+
+You can use the following operators on numbers, and standard operator precedence is enforced.
+
+    addition (+)
+
+    subtraction (-)
+
+    increment (++)
+
+    decrement (--)
+
+    multiplication (*)
+
+    division (/) (div)
+
+    modulus (%) (mod)
+
+    exponential power (^)
+
+```java
+Inventor inventor = new Inventor();
+EvaluationContext context = SimpleEvaluationContext.forReadWriteDataBinding().build();
+
+// -- Addition --
+
+int two = parser.parseExpression("1 + 1").getValue(int.class);  // 2
+
+// -- Subtraction --
+
+int four = parser.parseExpression("1 - -3").getValue(int.class);  // 4
+
+double d = parser.parseExpression("1000.00 - 1e4").getValue(double.class);  // -9000
+
+// -- Increment --
+
+// The counter property in Inventor has an initial value of 0.
+
+// evaluates to 2; counter is now 1
+two = parser.parseExpression("counter++ + 2").getValue(context, inventor, int.class);
+
+// evaluates to 5; counter is now 2
+int five = parser.parseExpression("3 + ++counter").getValue(context, inventor, int.class);
+
+// -- Decrement --
+
+// The counter property in Inventor has a value of 2.
+
+// evaluates to 6; counter is now 1
+int six = parser.parseExpression("counter-- + 4").getValue(context, inventor, int.class);
+
+// evaluates to 5; counter is now 0
+five = parser.parseExpression("5 + --counter").getValue(context, inventor, int.class);
+
+// -- Multiplication --
+
+six = parser.parseExpression("-2 * -3").getValue(int.class);  // 6
+
+double twentyFour = parser.parseExpression("2.0 * 3e0 * 4").getValue(double.class);  // 24.0
+
+// -- Division --
+
+int minusTwo = parser.parseExpression("6 / -3").getValue(int.class);  // -2
+
+double one = parser.parseExpression("8.0 / 4e0 / 2").getValue(double.class);  // 1.0
+
+// -- Modulus --
+
+int three = parser.parseExpression("7 % 4").getValue(int.class);  // 3
+
+int oneInt = parser.parseExpression("8 / 5 % 2").getValue(int.class);  // 1
+
+// -- Exponential power --
+
+int maxInt = parser.parseExpression("(2^31) - 1").getValue(int.class);  // Integer.MAX_VALUE
+
+int minInt = parser.parseExpression("-2^31").getValue(int.class);  // Integer.MIN_VALUE
+
+// -- Operator precedence --
+
+int minusTwentyOne = parser.parseExpression("1+2-3*8").getValue(int.class);  // -21
+```
+
+
+### Assignment
+
+Can also be done with setValue()
+
+```java
+Inventor inventor = new Inventor();
+EvaluationContext context = SimpleEvaluationContext.forReadWriteDataBinding().build();
+
+parser.parseExpression("name").setValue(context, inventor, "Aleksandar Seovic");
+
+// alternatively
+String aleks = parser.parseExpression(
+		"name = 'Aleksandar Seovic'").getValue(context, inventor, String.class);
+```
+
+### Type expressions
+
+```java
+Class dateClass = parser.parseExpression("T(java.util.Date)").getValue(Class.class);
+
+Class stringClass = parser.parseExpression("T(String)").getValue(Class.class);
+
+boolean trueValue = parser.parseExpression(
+		"T(java.math.RoundingMode).CEILING < T(java.math.RoundingMode).FLOOR")
+		.getValue(Boolean.class);
+```
+
+```note
+The StandardEvaluationContext uses a TypeLocator to find types, and the StandardTypeLocator 
+(which can be replaced) is built with an understanding of the java.lang package. 
+```
+
+### Method invocation
+
+```java
+// string literal, evaluates to "bc"
+String bc = parser.parseExpression("'abc'.substring(1, 3)").getValue(String.class);
+
+// evaluates to true
+boolean isMember = parser.parseExpression("isMember('Mihajlo Pupin')").getValue(
+		societyContext, Boolean.class);
+```
+
+### Constructor invocation
+
+```java
+Inventor einstein = parser.parseExpression(
+	"new org.spring.samples.spel.inventor.Inventor('Albert Einstein', 'German')")
+		.getValue(Inventor.class);
+
+// create new Inventor instance within the add() method of List
+parser.parseExpression(
+	"Members.add(new org.spring.samples.spel.inventor.Inventor('Albert Einstein', 'German'))")
+		.getValue(societyContext);
+```
+
+### Variables
+
+### User-defined functions
+
+### Bean references
+
+### Ternary, Elvis, and safe-navigation operators
+
+### Collection projection
+
+### Collection selection
+
+### Templated expressions
+
+
+## Expressions in Bean Definitions
+
+You can use SpEL expressions with configuration metadata for defining bean instances. 
+In both cases, the syntax to define the expression is of the form #{ <expression string> }.
+
+
+To specify a default value, you can place the @Value annotation on fields, methods, and method or constructor parameters (or XML equivalent).
+
+```java
+// same can be for setter, constructor or other Autowired method
+public class FieldValueTestBean {
+
+	@Value("#{ systemProperties['user.region'] }")
+	private String defaultLocale;
+
+	public void setDefaultLocale(String defaultLocale) {
+		this.defaultLocale = defaultLocale;
+	}
+
+	public String getDefaultLocale() {
+		return this.defaultLocale;
+	}
+}
+```
+
+
+
+You can also refer to other bean properties by name, as the following example shows:
+
+```java
+public class ShapeGuess {
+
+	private double initialShapeSeed;
+
+	@Value("#{ numberGuess.randomNumber }")
+	public void setInitialShapeSeed(double initialShapeSeed) {
+		this.initialShapeSeed = initialShapeSeed;
+	}
+
+	public double getInitialShapeSeed() {
+		return initialShapeSeed;
+	}
+}
+```
+
+## Overloaded Operators
+
+```java
+pubic class ListConcatenation implements OperatorOverloader {
+
+	@Override
+	public boolean overridesOperation(Operation operation, Object left, Object right) {
+		return (operation == Operation.ADD &&
+				left instanceof List && right instanceof List);
+	}
+
+	@Override
+	public Object operate(Operation operation, Object left, Object right) {
+		if (operation == Operation.ADD &&
+				left instanceof List list1 && right instanceof List list2) {
+
+			List result = new ArrayList(list1);
+			result.addAll(list2);
+			return result;
+		}
+		throw new UnsupportedOperationException(
+			"No overload for operation %s and operands [%s] and [%s]"
+				.formatted(operation, left, right));
+	}
+}
+```
+
+Adding overrided operation to context: 
+
+```java
+StandardEvaluationContext context = new StandardEvaluationContext();
+context.setOperatorOverloader(new ListConcatenation());
+
+// evaluates to a new list: [1, 2, 3, 4, 5]
+parser.parseExpression("{1, 2, 3} + {2 + 2, 5}").getValue(context, List.class);
+```
+
+```note
+An OperatorOverloader does not change the default semantics for an operator. For example, 2 + 2 in the above example still evaluates to 4.
+
+!!! Any expression that uses an overloaded operator cannot be compiled. See Compiler Limitations for details.
+```
+
+
+-------------------------
+
 
 ## Bean Lifecycle
 
